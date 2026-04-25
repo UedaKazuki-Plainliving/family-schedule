@@ -92,6 +92,7 @@
                     <excludes>
                         <exclude>**/api/**</exclude>
                         <exclude>**/e2e/**</exclude>
+                        <exclude>**/explore/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -102,6 +103,7 @@
                     <includes>
                         <include>**/api/**</include>
                         <include>**/e2e/**</include>
+                        <include>**/explore/**</include>
                     </includes>
                     <excludes>
                         <!-- 本番環境専用テスト：Windowsパス依存のためCIでは除外 -->

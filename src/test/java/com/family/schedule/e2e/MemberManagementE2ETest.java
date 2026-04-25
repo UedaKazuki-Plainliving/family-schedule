@@ -1,5 +1,6 @@
 package com.family.schedule.e2e;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
@@ -80,11 +81,20 @@ class MemberManagementE2ETest extends BaseE2ETest {
         assertThat(memberItem("長男")).isVisible();
     }
 
+    @AfterEach
+    void resetMembers() {
+        // テスト後のDB状態を初期5名に戻す（後続テストクラスへの影響を防ぐ）
+        jdbc.execute("DELETE FROM schedules");
+        jdbc.execute("DELETE FROM members");
+        jdbc.execute("INSERT INTO members (id, name, display_order) VALUES " +
+                "(1,'お父さん',1),(2,'お母さん',2),(3,'長女',3),(4,'次女',4),(5,'長男',5)");
+    }
+
     @Test
     void メンバー10名を超えて追加できない() {
-        // 既存5名に5名追加して計10名にする
+        // 既存5名に5名追加して計10名にする（H2はINTEGER PRIMARY KEYを自動採番しないため明示指定）
         for (int i = 6; i <= 10; i++) {
-            jdbc.update("INSERT INTO members (name, display_order) VALUES (?, ?)", "テスト" + i, i);
+            jdbc.update("INSERT INTO members (id, name, display_order) VALUES (?, ?, ?)", i, "テスト" + i, i);
         }
         openMemberModal();
 
