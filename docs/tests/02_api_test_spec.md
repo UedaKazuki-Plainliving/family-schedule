@@ -1,4 +1,4 @@
-# APIテスト仕様書
+﻿# APIテスト仕様書
 
 - バージョン：v0.1
 - 実装：Playwright for Java の `APIRequestContext`
@@ -18,7 +18,7 @@
 
 | # | 条件 | 期待 |
 |---|------|------|
-| 01-1 | 正常 | 200 / 5件返却 / `displayOrder` 昇順 / name が ["お父さん","お母さん","そよ","ゆうり","いちろう"] |
+| 01-1 | 正常 | 200 / 5件返却 / `displayOrder` 昇順 / name が ["お父さん","お母さん","長女","次女","長男"] |
 
 ---
 
@@ -38,7 +38,7 @@
 
 | # | 条件 | 期待 |
 |---|------|------|
-| 03-1 | 正常（memberId=3, date=今日, content="部活"） | 201 / Locationヘッダ / body に id,memberName="そよ" |
+| 03-1 | 正常（memberId=3, date=今日, content="部活"） | 201 / Locationヘッダ / body に id,memberName="長女" |
 | 03-2 | `content=""`（空） | 400 / fields.content="内容を入力してください" |
 | 03-3 | `content` が空白のみ（"   "） | 400 / fields.content |
 | 03-4 | `content` が101文字 | 400 / fields.content="内容は100文字以内で入力してください" |

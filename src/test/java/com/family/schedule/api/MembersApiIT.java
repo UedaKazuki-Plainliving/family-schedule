@@ -16,7 +16,7 @@ class MembersApiIT extends BaseApiTest {
         JsonNode arr = new ObjectMapper().readTree(res.text());
         assertThat(arr.size()).isEqualTo(5);
         assertThat(arr.get(0).get("name").asText()).isEqualTo("お父さん");
-        assertThat(arr.get(4).get("name").asText()).isEqualTo("いちろう");
+        assertThat(arr.get(4).get("name").asText()).isEqualTo("長男");
         int prev = 0;
         for (JsonNode m : arr) {
             int order = m.get("displayOrder").asInt();

@@ -3,6 +3,7 @@ package com.family.schedule.web;
 import com.family.schedule.service.NotFoundException;
 import com.family.schedule.service.ValidationException;
 import com.family.schedule.web.dto.ErrorResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -16,6 +17,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 import java.util.Set;
+
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -66,6 +68,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBadRequest(Exception ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.validation("リクエストパラメータが不正です", Map.of()));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.validation("このメンバーには予定が登録されています。先に予定を削除してください。", Map.of()));
     }
 
     @ExceptionHandler(Exception.class)

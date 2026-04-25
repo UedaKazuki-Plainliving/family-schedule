@@ -64,7 +64,7 @@ class SchedulesApiIT extends BaseApiTest {
         assertThat(res.status()).isEqualTo(201);
         assertThat(res.headers().get("location")).contains("/api/schedules/");
         JsonNode body = om.readTree(res.text());
-        assertThat(body.get("memberName").asText()).isEqualTo("そよ");
+        assertThat(body.get("memberName").asText()).isEqualTo("長女");
         assertThat(body.get("content").asText()).isEqualTo("部活");
     }
 

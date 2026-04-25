@@ -33,7 +33,7 @@ class ScheduleServiceTest {
         repo = mock(ScheduleRepository.class);
         memberService = mock(MemberService.class);
         when(memberService.nameById()).thenReturn(Map.of(
-                1, "お父さん", 2, "お母さん", 3, "そよ", 4, "ゆうり", 5, "いちろう"));
+                1, "お父さん", 2, "お母さん", 3, "長女", 4, "次女", 5, "長男"));
         service = new ScheduleService(repo, memberService);
     }
 
@@ -49,7 +49,7 @@ class ScheduleServiceTest {
                 LocalDate.of(2026, 4, 24), LocalDate.of(2026, 4, 25));
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).memberName()).isEqualTo("そよ");
+        assertThat(result.get(0).memberName()).isEqualTo("長女");
         assertThat(result.get(0).content()).isEqualTo("部活");
     }
 
@@ -79,7 +79,7 @@ class ScheduleServiceTest {
         ScheduleResponse r = service.create(req);
 
         assertThat(r.id()).isEqualTo(42L);
-        assertThat(r.memberName()).isEqualTo("そよ");
+        assertThat(r.memberName()).isEqualTo("長女");
         assertThat(cap.getValue().getContent()).isEqualTo("塾");
     }
 

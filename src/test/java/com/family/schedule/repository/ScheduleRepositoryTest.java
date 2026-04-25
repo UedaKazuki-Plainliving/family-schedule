@@ -46,7 +46,7 @@ class ScheduleRepositoryTest {
         assertThat(result).hasSize(3);
         assertThat(result.get(0).getDate()).isEqualTo(LocalDate.of(2026, 4, 24));
         assertThat(result.get(0).getMemberId()).isEqualTo(1); // お父さん
-        assertThat(result.get(1).getMemberId()).isEqualTo(3); // そよ
+        assertThat(result.get(1).getMemberId()).isEqualTo(3); // 長女
         assertThat(result.get(2).getDate()).isEqualTo(LocalDate.of(2026, 4, 25));
     }
 }

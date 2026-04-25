@@ -1,8 +1,11 @@
 # 基本設計書 - 家族スケジュール共有システム
 
-- バージョン：v0.1
+- バージョン：v0.2
 - 作成日：2026-04-24
-- 前提要件：[要件定義 v0.3](../requirements/requirements.md)
+- 更新履歴：
+  - v0.1：初版
+  - v0.2：メンバー管理機能（S-06）追加・LocalStorageキー名修正
+- 前提要件：[要件定義 v0.4](../requirements/requirements.md)
 
 ---
 
@@ -15,7 +18,7 @@
 │  ブラウザ (スマホ優先 / PC も可)                         │
 │  ┌───────────────────────────────────────────────────┐ │
 │  │ SPA: HTML + Vanilla JS (+ 必要最小限の CSS)         │ │
-│  │  - LocalStorage に "currentUser" を保存 (FR-20)    │ │
+│  │  - LocalStorage に "familySchedule.currentUser" を保存 (FR-20) │ │
 │  │  - fetch で Backend API を呼び出し                  │ │
 │  └───────────────────────────────────────────────────┘ │
 └───────────────────────────┬─────────────────────────────┘
@@ -34,7 +37,7 @@
                             ▼
 ┌─────────────────────────────────────────────────────────┐
 │  PostgreSQL 16                                           │
-│  - members (マスタ、5件固定)                              │
+│  - members (マスタ、最大10件)                             │
 │  - schedules (予定)                                       │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -63,13 +66,16 @@ com.family.schedule
 ├── web/                              # REST コントローラ
 │   ├── MemberController.java
 │   ├── ScheduleController.java
+│   ├── GlobalExceptionHandler.java
 │   └── dto/
 │       ├── ScheduleRequest.java
 │       ├── ScheduleResponse.java
+│       ├── MemberRequest.java
 │       └── MemberResponse.java
 ├── service/                          # ビジネスロジック
 │   ├── MemberService.java
-│   └── ScheduleService.java
+│   ├── ScheduleService.java
+│   └── ScheduleValidator.java
 ├── domain/                           # JPA エンティティ
 │   ├── Member.java
 │   └── Schedule.java
@@ -88,11 +94,12 @@ com.family.schedule
 
 | 画面ID | 画面名 | 役割 |
 |---|---|---|
-| S-01 | 利用者選択画面 | 初回起動時のみ。5人からタップで選ぶ |
+| S-01 | 利用者選択画面 | 初回起動時のみ。メンバーからタップで選ぶ |
 | S-02 | スケジュール画面 | 本システムのメイン画面。今日と明日を表示 |
 | S-03 | 予定入力フォーム (モーダル) | 新規登録 |
 | S-04 | 予定編集フォーム (モーダル) | 編集＋削除 |
 | S-05 | 削除確認ダイアログ | 対象内容を表示して確認 |
+| S-06 | メンバー管理モーダル | メンバーの追加・名前変更・削除 |
 
 **レイアウト方針（レビュー F1-4 反映）：**
 - スケジュール画面は **「人＝行」「日付＝列（今日／明日の2列）」** の格子状

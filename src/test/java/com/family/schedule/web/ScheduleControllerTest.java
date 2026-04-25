@@ -40,10 +40,10 @@ class ScheduleControllerTest {
     @Test
     void get_正常() throws Exception {
         when(service.findRange(LocalDate.of(2026, 4, 24), LocalDate.of(2026, 4, 25)))
-                .thenReturn(List.of(new ScheduleResponse(1L, 3, "そよ", LocalDate.of(2026, 4, 24), "部活")));
+                .thenReturn(List.of(new ScheduleResponse(1L, 3, "長女", LocalDate.of(2026, 4, 24), "部活")));
         mvc.perform(get("/api/schedules").param("from", "2026-04-24").param("to", "2026-04-25"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].memberName").value("そよ"))
+                .andExpect(jsonPath("$[0].memberName").value("長女"))
                 .andExpect(jsonPath("$[0].content").value("部活"));
     }
 
@@ -56,7 +56,7 @@ class ScheduleControllerTest {
     @Test
     void post_正常() throws Exception {
         when(service.create(any())).thenReturn(
-                new ScheduleResponse(100L, 3, "そよ", LocalDate.of(2026, 4, 25), "塾"));
+                new ScheduleResponse(100L, 3, "長女", LocalDate.of(2026, 4, 25), "塾"));
         String body = objectMapper.writeValueAsString(
                 new ScheduleRequest(3, LocalDate.of(2026, 4, 25), "塾"));
         mvc.perform(post("/api/schedules").contentType(MediaType.APPLICATION_JSON).content(body))

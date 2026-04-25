@@ -1,6 +1,9 @@
-# API詳細仕様書
+﻿# API詳細仕様書
 
-- バージョン：v0.1
+- バージョン：v0.2
+- 更新履歴：
+  - v0.1：初版
+  - v0.2：メンバーCRUD API 追加、BL-16（restore/purge）API 追加、エラー仕様拡充
 - ベースURL：`/api`
 - 形式：JSON (UTF-8)
 - 認証：なし（MVP）
@@ -13,10 +16,15 @@
 | メソッド | パス | 概要 | 関連FR |
 |---|---|---|---|
 | GET | `/api/members` | 家族メンバー一覧取得 | FR-01, FR-08 |
+| POST | `/api/members` | メンバー追加 | FR-24 |
+| PUT | `/api/members/{id}` | メンバー名前変更 | FR-24 |
+| DELETE | `/api/members/{id}` | メンバー削除 | FR-24 |
 | GET | `/api/schedules` | 指定日付範囲の予定一覧取得 | FR-03〜06 |
 | POST | `/api/schedules` | 予定新規登録 | FR-07〜10, FR-18 |
 | PUT | `/api/schedules/{id}` | 予定編集 | FR-11〜12, FR-18 |
-| DELETE | `/api/schedules/{id}` | 予定削除 | FR-13 |
+| DELETE | `/api/schedules/{id}` | 予定削除（soft delete） | FR-13 |
+| POST | `/api/schedules/{id}/restore` | 削除済み予定を復元 | BL-16 |
+| POST | `/api/schedules/{id}/purge` | 削除済み予定を完全削除 | BL-16 |
 
 ---
 
@@ -26,13 +34,16 @@
 
 | HTTP | 意味 | body |
 |---|---|---|
-| 400 | バリデーションエラー | `{ "error": "VALIDATION", "message": "...", "fields": { "content": "必須" } }` |
+| 400 | バリデーションエラー / パラメータ不正 | `{ "error": "VALIDATION", "message": "...", "fields": { "content": "必須" } }` |
 | 404 | リソース未存在 | `{ "error": "NOT_FOUND", "message": "schedule not found" }` |
-| 500 | 内部エラー | `{ "error": "INTERNAL", "message": "..." }` |
+| 405 | 未対応 HTTP メソッド | `{ "error": "METHOD_NOT_ALLOWED", "message": "..." }` + `Allow` ヘッダ |
+| 409 | 競合（FK制約など） | `{ "error": "CONFLICT", "message": "このメンバーには予定が登録されています。先に予定を削除してください。" }` |
+| 415 | Content-Type 不正 | `{ "error": "UNSUPPORTED_MEDIA_TYPE", "message": "..." }` |
+| 500 | 内部エラー | `{ "error": "INTERNAL", "message": "サーバーエラーが発生しました" }` |
 
 ### ID表現
 
-- `member.id`：整数 (1〜5 固定、マスタ)
+- `member.id`：整数（マスタ）
 - `schedule.id`：BIGSERIAL の整数
 
 ---
@@ -51,9 +62,9 @@
 [
   { "id": 1, "name": "お父さん", "displayOrder": 1 },
   { "id": 2, "name": "お母さん", "displayOrder": 2 },
-  { "id": 3, "name": "そよ",     "displayOrder": 3 },
-  { "id": 4, "name": "ゆうり",   "displayOrder": 4 },
-  { "id": 5, "name": "いちろう", "displayOrder": 5 }
+  { "id": 3, "name": "長女",     "displayOrder": 3 },
+  { "id": 4, "name": "次女",   "displayOrder": 4 },
+  { "id": 5, "name": "長男", "displayOrder": 5 }
 ]
 ```
 
@@ -61,7 +72,75 @@
 
 ---
 
-## 2. GET /api/schedules
+## 2. POST /api/members
+
+メンバーを追加する。
+
+### リクエストボディ
+
+```json
+{ "name": "おじいちゃん" }
+```
+
+### バリデーション
+
+| 項目 | ルール | NG時メッセージ |
+|---|---|---|
+| `name` | 必須、トリム後1〜20文字 | 空→"名前を入力してください" / 超過→"名前は20文字以内で入力してください" |
+| `name` | 既存メンバーと重複不可 | "同じ名前のメンバーが既に存在します" |
+| 合計人数 | 10名未満 | "メンバーは最大10名までです" |
+
+### レスポンス 201 Created
+
+```json
+{ "id": 6, "name": "おじいちゃん", "displayOrder": 6 }
+```
+
+---
+
+## 3. PUT /api/members/{id}
+
+メンバーの名前を変更する。
+
+### リクエストボディ
+
+```json
+{ "name": "お兄ちゃん" }
+```
+
+### バリデーション
+
+POST と同じ（重複チェックは自分自身を除く）。
+
+### レスポンス 200
+
+```json
+{ "id": 6, "name": "お兄ちゃん", "displayOrder": 6 }
+```
+
+### エラー
+
+- 400：バリデーション
+- 404：該当メンバーが存在しない
+
+---
+
+## 4. DELETE /api/members/{id}
+
+メンバーを削除する。
+
+### レスポンス 204 No Content
+
+body なし。
+
+### エラー
+
+- 404：該当メンバーが存在しない
+- 409：当該メンバーに予定が紐づいている（FK制約）
+
+---
+
+## 5. GET /api/schedules
 
 指定日付範囲の予定を一覧取得。
 
@@ -88,7 +167,7 @@ MVP では常に `to - from = 1日` で呼ばれる想定。
   {
     "id": 102,
     "memberId": 3,
-    "memberName": "そよ",
+    "memberName": "長女",
     "date": "2026-04-24",
     "content": "部活"
   }
@@ -105,7 +184,7 @@ MVP では常に `to - from = 1日` で呼ばれる想定。
 
 ---
 
-## 3. POST /api/schedules
+## 6. POST /api/schedules
 
 予定を新規登録。
 
@@ -123,7 +202,7 @@ MVP では常に `to - from = 1日` で呼ばれる想定。
 
 | 項目 | ルール | NG時メッセージ |
 |---|---|---|
-| `memberId` | 1〜5 のいずれか | "誰を選んでください" |
+| `memberId` | 存在するメンバーID | "誰を選んでください" |
 | `date` | ISO日付、必須 | "日付を入力してください" |
 | `content` | 必須、トリム後1〜100文字 | 空→"内容を入力してください" / 101文字以上→"内容は100文字以内で入力してください" |
 
@@ -133,7 +212,7 @@ MVP では常に `to - from = 1日` で呼ばれる想定。
 {
   "id": 103,
   "memberId": 3,
-  "memberName": "そよ",
+  "memberName": "長女",
   "date": "2026-04-25",
   "content": "塾"
 }
@@ -147,7 +226,7 @@ MVP では常に `to - from = 1日` で呼ばれる想定。
 
 ---
 
-## 4. PUT /api/schedules/{id}
+## 7. PUT /api/schedules/{id}
 
 予定を編集（全項目差し替え）。
 
@@ -176,9 +255,9 @@ POST と同じ構造。
 
 ---
 
-## 5. DELETE /api/schedules/{id}
+## 8. DELETE /api/schedules/{id}
 
-予定を削除。
+予定を soft delete（`deleted_at` を現在時刻にセット）。
 
 ### パスパラメータ
 
@@ -193,6 +272,34 @@ body なし。
 ### エラー
 
 - 404：該当予定が存在しない
+
+---
+
+## 9. POST /api/schedules/{id}/restore
+
+soft delete された予定を復元する（`deleted_at` を NULL に戻す）。
+
+### レスポンス 200
+
+復元後の `ScheduleResponse`。
+
+### エラー
+
+- 404：該当予定が存在しない、または削除済みでない
+
+---
+
+## 10. POST /api/schedules/{id}/purge
+
+soft delete された予定を物理削除する。
+
+### レスポンス 204 No Content
+
+body なし。
+
+### エラー
+
+- 404：該当予定が存在しない、または削除済みでない
 
 ---
 
@@ -219,6 +326,11 @@ public record MemberResponse(
     Integer id,
     String name,
     Integer displayOrder
+) {}
+
+// メンバー入力
+public record MemberRequest(
+    String name
 ) {}
 
 // エラー

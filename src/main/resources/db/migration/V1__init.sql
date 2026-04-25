@@ -7,9 +7,9 @@ CREATE TABLE members (
 INSERT INTO members (id, name, display_order) VALUES
     (1, 'お父さん', 1),
     (2, 'お母さん', 2),
-    (3, 'そよ',     3),
-    (4, 'ゆうり',   4),
-    (5, 'いちろう', 5);
+    (3, '長女',     3),
+    (4, '次女',     4),
+    (5, '長男',     5);
 
 CREATE TABLE schedules (
     id          BIGSERIAL PRIMARY KEY,

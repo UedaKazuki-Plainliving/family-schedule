@@ -29,4 +29,7 @@ public class Member {
     public Integer getId() { return id; }
     public String getName() { return name; }
     public Integer getDisplayOrder() { return displayOrder; }
+
+    public void setName(String name) { this.name = name; }
+    public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }
 }

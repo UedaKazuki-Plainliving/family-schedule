@@ -1,4 +1,4 @@
-=== Test Evidence (API calls via curl) ===
+﻿=== Test Evidence (API calls via curl) ===
 Captured at: 2026-04-24T23:31:29+00:00
 
 ## TC-API-01: GET /api/members
@@ -44,7 +44,7 @@ Content-Type: application/json
 Transfer-Encoding: chunked
 Date: Fri, 24 Apr 2026 23:31:29 GMT
 
-{"id":1,"memberId":3,"memberName":"そよ","date":"2026-04-24","content":"部活"}
+{"id":1,"memberId":3,"memberName":"長女","date":"2026-04-24","content":"部活"}
 ## TC-API-03-2: POST schedule (empty content -> 400)
 $ curl -s -X POST http://localhost:8080/api/schedules -d '{...content:""}'
 HTTP/1.1 400 
@@ -70,7 +70,7 @@ Content-Type: application/json
 Transfer-Encoding: chunked
 Date: Fri, 24 Apr 2026 23:31:29 GMT
 
-{"id":1,"memberId":3,"memberName":"そよ","date":"2026-04-25","content":"塾"}
+{"id":1,"memberId":3,"memberName":"長女","date":"2026-04-25","content":"塾"}
 ## TC-API-04-2: PUT non-existent ID -> 404
 HTTP/1.1 404 
 Content-Type: application/json

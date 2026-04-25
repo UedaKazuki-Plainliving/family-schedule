@@ -39,7 +39,7 @@ class ScenarioE2ETest extends BaseE2ETest {
         // 5. 登録が3ステップ以内
         page.locator("#btn-add").click();             // step 1
         snap("04_S03_予定追加モーダル");
-        page.locator(".who-btn").getByText("いちろう").click();
+        page.locator(".who-btn").getByText("長男").click();
         page.locator("#content-input").fill("学童お迎え");  // step 2
         snap("05_S03_入力済み");
         page.locator("#btn-save").click();              // step 3
@@ -49,8 +49,8 @@ class ScenarioE2ETest extends BaseE2ETest {
     }
 
     @Test
-    void TC_SC_02_そよの夜の予定() {
-        setCurrentUser("そよ", 3);
+    void TC_SC_02_長女の夜の予定() {
+        setCurrentUser("長女", 3);
         page.navigate(baseUrl() + "/");
         assertThat(page.locator("#screen-schedule")).isVisible();
 
@@ -62,8 +62,8 @@ class ScenarioE2ETest extends BaseE2ETest {
     }
 
     @Test
-    void TC_SC_04_ゆうりの誤操作防止() {
-        setCurrentUser("ゆうり", 4);
+    void TC_SC_04_次女の誤操作防止() {
+        setCurrentUser("次女", 4);
         // 予定を1件入れておく（APIで）
         context.request().post(baseUrl() + "/api/schedules",
                 com.microsoft.playwright.options.RequestOptions.create().setData(java.util.Map.of(
@@ -72,16 +72,16 @@ class ScenarioE2ETest extends BaseE2ETest {
         page.navigate(baseUrl() + "/");
         Locator item = page.locator(".schedule-item").first();
         assertThat(item).isVisible();
-        // 長押し（500ms）しても編集フォームは開かない
+        // 長押し（500ms）しても編集フォームは開かない（FR-23）
         item.hover();
         page.mouse().down();
         page.waitForTimeout(500);
         page.mouse().up();
-        assertThat(page.locator("#modal")).isHidden();
+        assertThat(page.locator(".schedule-item-input")).hasCount(0);
     }
 
     @Test
-    void TC_SC_05_削除と確認ダイアログ() {
+    void TC_SC_05_✕ボタン削除とUNDO() {
         setCurrentUser("お母さん", 2);
         context.request().post(baseUrl() + "/api/schedules",
                 com.microsoft.playwright.options.RequestOptions.create().setData(java.util.Map.of(
@@ -89,24 +89,23 @@ class ScenarioE2ETest extends BaseE2ETest {
 
         page.navigate(baseUrl() + "/");
         snap("01_初期表示");
-        page.locator(".schedule-item:has-text('サッカー教室')").click();
-        snap("02_編集フォーム");
-        page.locator("#btn-delete").click();
-        assertThat(page.locator("#confirm-text")).hasText("『サッカー教室』を削除しますか？");
-        snap("03_削除確認ダイアログ");
-        page.locator("#btn-no").click();
-        assertThat(page.locator("#confirm")).isHidden();
 
-        page.locator("#btn-delete").click();
-        page.locator("#btn-yes").click();
-        assertThat(page.locator("#toast")).hasText("削除しました");
-        snap("04_削除完了");
+        // ✕ボタンをクリック
+        page.locator(".schedule-item:has-text('サッカー教室')")
+                .locator(".schedule-item-delete").click();
+        page.waitForTimeout(500);
+        snap("02_削除後トースト");
+
+        assertThat(page.locator("#toast")).containsText("削除しました");
+        assertThat(page.locator(".schedule-item-text:has-text('サッカー教室')")).hasCount(0);
+
+        // 元に戻す
+        page.locator("#toast").locator("button:has-text('元に戻す')").click();
+        page.waitForTimeout(1200);
+        snap("03_復元後");
+
+        assertThat(page.locator(".schedule-item-text:has-text('サッカー教室')")).isVisible();
+        assertThat(page.locator("#toast")).hasText("元に戻しました");
     }
 
-    private void setCurrentUser(String name, int id) {
-        // LocalStorage に利用者をセットしてからナビゲート
-        context.addInitScript(
-                "localStorage.setItem('familySchedule.currentUser', '" +
-                        "{\"id\":" + id + ",\"name\":\"" + name + "\",\"displayOrder\":" + id + "}');");
-    }
 }

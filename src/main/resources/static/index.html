@@ -18,9 +18,10 @@
     <!-- S-02 スケジュール画面 -->
     <section id="screen-schedule" class="screen" hidden>
       <header class="header">
-        <div class="current-user">👤 <span id="current-user-name"></span></div>
+        <button type="button" id="btn-switch-user" class="current-user-btn" title="利用者を切り替える">👤 <span id="current-user-name"></span></button>
         <div class="title-center">家族スケジュール</div>
         <button type="button" id="btn-today" class="btn btn-ghost">今日に戻る</button>
+        <button type="button" id="btn-member-settings" class="icon-btn" aria-label="メンバー管理" title="メンバー管理">⚙</button>
       </header>
       <div class="date-heading">
         <div class="date-col" id="date-heading-left"></div>
@@ -69,6 +70,23 @@
           <button type="button" id="btn-no" class="btn btn-ghost">いいえ</button>
           <button type="button" id="btn-yes" class="btn btn-danger">はい</button>
         </div>
+      </div>
+    </div>
+
+    <!-- S-06 メンバー管理モーダル -->
+    <div id="member-modal" class="modal" hidden>
+      <div class="modal-content">
+        <header class="modal-header">
+          <h2>メンバー管理</h2>
+          <button type="button" id="btn-member-modal-close" class="icon-btn" aria-label="閉じる">×</button>
+        </header>
+        <p class="member-modal-hint">最大10名まで登録できます</p>
+        <ul class="member-manage-list" id="member-manage-list"></ul>
+        <div class="member-add-row" id="member-add-section">
+          <input type="text" id="member-add-input" maxlength="20" placeholder="名前を入力（20文字まで）" />
+          <button type="button" id="btn-member-add" class="btn btn-primary">追加</button>
+        </div>
+        <p id="member-modal-error" class="error-msg" hidden></p>
       </div>
     </div>
 

@@ -19,7 +19,7 @@ class ScenarioFlowIT extends BaseApiTest {
 
     @Test
     void TC_IT_01_1_登録の結合_APIとDB() throws Exception {
-        // 画面操作に相当: +追加 → 誰が=そよ, 日付=今日, 内容="部活" → 保存
+        // 画面操作に相当: +追加 → 誰が=長女, 日付=今日, 内容="部活" → 保存
         APIResponse res = post("/api/schedules",
                 Map.of("memberId", 3, "date", "2026-04-24", "content", "部活"));
         assertThat(res.status()).isEqualTo(201);
@@ -137,10 +137,10 @@ class ScenarioFlowIT extends BaseApiTest {
 
     @Test
     void TC_SC_01_3step_シナリオ_APIで検証() throws Exception {
-        // お母さんが いちろう の予定を登録（画面3ステップ相当を1 POST で）
+        // お母さんが 長男 の予定を登録（画面3ステップ相当を1 POST で）
         APIResponse res = post("/api/schedules",
                 Map.of("memberId", 5, "date", "2026-04-24", "content", "学童お迎え"));
         assertThat(res.status()).isEqualTo(201);
-        assertThat(om.readTree(res.text()).get("memberName").asText()).isEqualTo("いちろう");
+        assertThat(om.readTree(res.text()).get("memberName").asText()).isEqualTo("長男");
     }
 }

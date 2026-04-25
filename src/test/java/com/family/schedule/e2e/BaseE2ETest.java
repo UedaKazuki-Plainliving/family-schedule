@@ -3,12 +3,14 @@ package com.family.schedule.e2e;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
@@ -117,6 +119,7 @@ public abstract class BaseE2ETest {
                 .setRecordVideoDir(VIDEO_DIR)
                 .setRecordVideoSize(390, 844));
         page = context.newPage();
+        page.onDialog(dialog -> dialog.accept());
     }
 
     @AfterEach
@@ -171,5 +174,38 @@ public abstract class BaseE2ETest {
 
     protected String baseUrl() {
         return "http://localhost:" + port;
+    }
+
+    protected void setCurrentUser(String name, int id) {
+        context.addInitScript(
+                "localStorage.setItem('familySchedule.currentUser'," +
+                "JSON.stringify({id:" + id + ",name:\"" + name + "\",displayOrder:" + id + "}));");
+    }
+
+    protected Locator cell(int memberId, String date) {
+        return page.locator(".schedule-cell[data-member-id='" + memberId + "'][data-date='" + date + "']");
+    }
+
+    protected void insertSchedule(int memberId, String date, String content) {
+        jdbc.update(
+                "INSERT INTO schedules (member_id, date, content, created_at, updated_at) VALUES (?,?,?,now(),now())",
+                memberId, java.sql.Date.valueOf(date), content);
+    }
+
+    protected String today() { return LocalDate.now().toString(); }
+    protected String tomorrow() { return LocalDate.now().plusDays(1).toString(); }
+    protected String dayAfterTomorrow() { return LocalDate.now().plusDays(2).toString(); }
+    protected String daysLater(int n) { return LocalDate.now().plusDays(n).toString(); }
+
+    protected void flickLeft() {
+        page.mouse().move(300, 250); page.mouse().down();
+        page.mouse().move(100, 250); page.mouse().up();
+        page.waitForTimeout(500);
+    }
+
+    protected void flickRight() {
+        page.mouse().move(100, 250); page.mouse().down();
+        page.mouse().move(300, 250); page.mouse().up();
+        page.waitForTimeout(500);
     }
 }

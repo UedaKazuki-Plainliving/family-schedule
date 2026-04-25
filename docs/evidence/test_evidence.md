@@ -1,4 +1,4 @@
-# テスト結果・エビデンス
+﻿# テスト結果・エビデンス
 
 - 対象：家族スケジュール共有システム MVP v0.1
 - 実施日時：2026-04-24 (UTC)
@@ -90,9 +90,9 @@ XML（CIで読み込み可能）も同フォルダに保存済み。
 $ curl -s http://localhost:8080/api/members
 [{"id":1,"name":"お父さん","displayOrder":1},
  {"id":2,"name":"お母さん","displayOrder":2},
- {"id":3,"name":"そよ","displayOrder":3},
- {"id":4,"name":"ゆうり","displayOrder":4},
- {"id":5,"name":"いちろう","displayOrder":5}]
+ {"id":3,"name":"長女","displayOrder":3},
+ {"id":4,"name":"次女","displayOrder":4},
+ {"id":5,"name":"長男","displayOrder":5}]
 ```
 
 ### TC-API-03-1：POST /api/schedules（201）
@@ -104,7 +104,7 @@ $ curl -i -X POST http://localhost:8080/api/schedules \
 HTTP/1.1 201
 Location: /api/schedules/1
 Content-Type: application/json
-{"id":1,"memberId":3,"memberName":"そよ","date":"2026-04-24","content":"部活"}
+{"id":1,"memberId":3,"memberName":"長女","date":"2026-04-24","content":"部活"}
 ```
 
 ### TC-API-03-2：内容空 → 400
@@ -144,9 +144,9 @@ HTTP/1.1 204
 ----+----------+---------------
   1 | お父さん |             1
   2 | お母さん |             2
-  3 | そよ     |             3
-  4 | ゆうり   |             4
-  5 | いちろう |             5
+  3 | 長女     |             3
+  4 | 次女   |             4
+  5 | 長男 |             5
 ```
 
 ### schedules テーブル（API 経由で4件登録した直後）
@@ -192,7 +192,7 @@ Foreign-key constraints:
 | 2 | "お母さん" タップ → S-02 スケジュール画面 | [画像](./screenshots/ScenarioE2ETest_TC_SC_01__________02_S02_________.png) |
 | 3 | 2回目起動 → 利用者選択をスキップして S-02 直行（FR-20） | [画像](./screenshots/ScenarioE2ETest_TC_SC_01__________03_2_____S02__.png) |
 | 4 | "+追加" タップ → S-03 予定追加モーダル | [画像](./screenshots/ScenarioE2ETest_TC_SC_01__________04_S03_________.png) |
-| 5 | "誰が"=いちろう、"内容"="学童お迎え" 入力 | [画像](./screenshots/ScenarioE2ETest_TC_SC_01__________05_S03_____.png) |
+| 5 | "誰が"=長男、"内容"="学童お迎え" 入力 | [画像](./screenshots/ScenarioE2ETest_TC_SC_01__________05_S03_____.png) |
 | 6 | "保存" 押下 → トースト "保存しました" | [画像](./screenshots/ScenarioE2ETest_TC_SC_01__________06_______.png) |
 | 7 | 終了時の最終状態 | [画像](./screenshots/ScenarioE2ETest_TC_SC_01__________end.png) |
 
@@ -208,8 +208,8 @@ Foreign-key constraints:
 
 ### その他のシナリオ／画面遷移（最終状態）
 
-- [TC-SC-02 そよの夜の予定（end）](./screenshots/ScenarioE2ETest_TC_SC_02___________end.png)
-- [TC-SC-04 ゆうりの誤操作防止（end）（FR-23）](./screenshots/ScenarioE2ETest_TC_SC_04_____________end.png)
+- [TC-SC-02 長女の夜の予定（end）](./screenshots/ScenarioE2ETest_TC_SC_02___________end.png)
+- [TC-SC-04 次女の誤操作防止（end）（FR-23）](./screenshots/ScenarioE2ETest_TC_SC_04_____________end.png)
 - [T01 初回起動はS01](./screenshots/ScreenTransitionE2ETest_T01______S01___end.png)
 - [T02 LocalStorageありはS02](./screenshots/ScreenTransitionE2ETest_T02_LocalStorage___S02___end.png)
 - [T03 名前ボタンタップでS02](./screenshots/ScreenTransitionE2ETest_T03__________S02___end.png)
@@ -230,8 +230,8 @@ WebM はモダンブラウザ（Chrome / Safari / Edge / Firefox）で再生可�
 | テスト | 動画 | 検証している要件 |
 |---|---|---|
 | TC-SC-01 お母さんの朝 | [動画](./videos/ScenarioE2ETest_TC_SC_01_________.webm) | FR-20（利用者記憶）、FR-21（3ステップ登録）、FR-22（誰が1タップ）、FR-16（トースト） |
-| TC-SC-02 そよの夜の予定 | [動画](./videos/ScenarioE2ETest_TC_SC_02__________.webm) | FR-07〜10（登録）、FR-16（トースト） |
-| TC-SC-04 ゆうりの誤操作防止 | [動画](./videos/ScenarioE2ETest_TC_SC_04____________.webm) | FR-23（長押しで編集フォームを開かない） |
+| TC-SC-02 長女の夜の予定 | [動画](./videos/ScenarioE2ETest_TC_SC_02__________.webm) | FR-07〜10（登録）、FR-16（トースト） |
+| TC-SC-04 次女の誤操作防止 | [動画](./videos/ScenarioE2ETest_TC_SC_04____________.webm) | FR-23（長押しで編集フォームを開かない） |
 | TC-SC-05 削除と確認ダイアログ | [動画](./videos/ScenarioE2ETest_TC_SC_05_____________.webm) | FR-13（削除）、FR-17（対象内容を含む確認）、FR-19（削除ボタンの視覚区別）、FR-16（トースト） |
 
 ### 画面遷移テスト（TC-ST）
