@@ -81,7 +81,7 @@ class ScenarioE2ETest extends BaseE2ETest {
     }
 
     @Test
-    void TC_SC_05_✕ボタン削除とUNDO() {
+    void TC_SC_05_バツボタン削除とUNDO() {
         setCurrentUser("お母さん", 2);
         context.request().post(baseUrl() + "/api/schedules",
                 com.microsoft.playwright.options.RequestOptions.create().setData(java.util.Map.of(

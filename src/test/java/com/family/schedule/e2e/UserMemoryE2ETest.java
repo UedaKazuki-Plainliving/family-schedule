@@ -33,7 +33,7 @@ class UserMemoryE2ETest extends BaseE2ETest {
     }
 
     @Test
-    void 2回目以降はスケジュール画面から始まる() {
+    void 二回目以降はスケジュール画面から始まる() {
         setCurrentUser("お母さん", 2);
         page.navigate(baseUrl() + "/");
 

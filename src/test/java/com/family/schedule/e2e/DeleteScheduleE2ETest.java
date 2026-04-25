@@ -17,7 +17,7 @@ class DeleteScheduleE2ETest extends BaseE2ETest {
     }
 
     @Test
-    void ✕ボタンで予定を即削除する() {
+    void バツボタンで予定を即削除する() {
         page.navigate(baseUrl() + "/");
 
         // ✕ボタンをクリック

@@ -81,7 +81,7 @@ class MemberManagementE2ETest extends BaseE2ETest {
     }
 
     @Test
-    void 10名を超えて追加できない() {
+    void メンバー10名を超えて追加できない() {
         // 既存5名に5名追加して計10名にする
         for (int i = 6; i <= 10; i++) {
             jdbc.update("INSERT INTO members (name, display_order) VALUES (?, ?)", "テスト" + i, i);
