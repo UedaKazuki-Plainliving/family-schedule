@@ -296,6 +296,7 @@ textarea#content-input { resize: vertical; }
   gap: 8px;
   margin-top: 8px;
 }
+.member-add-row[hidden] { display: none; }
 .member-add-row input {
   flex: 1;
   font-size: 16px;
