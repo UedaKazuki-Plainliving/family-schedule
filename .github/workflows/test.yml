@@ -26,7 +26,7 @@ jobs:
           cache: 'maven'
 
       - name: ユニットテスト実行
-        run: mvn test -B
+        run: mvn test -B -Dtest="ScheduleValidatorTest,ScheduleServiceTest,ScheduleControllerTest,ScheduleRepositoryTest"
 
       - name: テストレポートをアップロード
         if: always()
@@ -34,6 +34,7 @@ jobs:
         with:
           name: unit-test-reports
           path: target/surefire-reports/
+          if-no-files-found: warn
 
   # ─────────────────────────────────────────
   # 2. API 統合テスト（H2 インメモリ DB）
@@ -51,7 +52,7 @@ jobs:
           cache: 'maven'
 
       - name: API 統合テスト実行
-        run: mvn verify -B -Dsurefire.skip=true
+        run: mvn failsafe:integration-test failsafe:verify -B -Dit.test="SchedulesApiIT,MembersApiIT,ScenarioFlowIT"
 
       - name: テストレポートをアップロード
         if: always()
@@ -59,6 +60,7 @@ jobs:
         with:
           name: api-test-reports
           path: target/failsafe-reports/
+          if-no-files-found: warn
 
   # ─────────────────────────────────────────
   # 3. E2E テスト（Playwright + Chromium）
@@ -75,15 +77,14 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: テストコンパイル
+        run: mvn test-compile -B
+
       - name: Playwright ブラウザ（Chromium）をインストール
-        run: |
-          mvn test-compile -B -q
-          mvn exec:java -e -q \
-            -Dexec.mainClass=com.microsoft.playwright.CLI \
-            -Dexec.args="install --with-deps chromium"
+        run: mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install --with-deps chromium"
 
       - name: E2E テスト実行
-        run: mvn verify -B -Dsurefire.skip=true
+        run: mvn failsafe:integration-test failsafe:verify -B -Dit.test="SelectUserE2ETest,ViewScheduleE2ETest,CreateScheduleE2ETest,EditScheduleE2ETest,DeleteScheduleE2ETest,FlickNavigationE2ETest,UserMemoryE2ETest,SwitchUserE2ETest,MemberManagementE2ETest,ScenarioE2ETest,ScreenTransitionE2ETest,DateBoundaryExploreTest,LocalStorageExploreTest,XssExploreTest"
 
       - name: スクリーンショット・動画をアップロード
         if: always()
@@ -91,6 +92,7 @@ jobs:
         with:
           name: e2e-evidence
           path: target/evidence/
+          if-no-files-found: warn
 
       - name: E2E テストレポートをアップロード
         if: always()
@@ -98,6 +100,7 @@ jobs:
         with:
           name: e2e-test-reports
           path: target/failsafe-reports/
+          if-no-files-found: warn
 
   # ─────────────────────────────────────────
   # 4. テスト結果メール通知
@@ -125,7 +128,7 @@ jobs:
           password: ${{ secrets.GMAIL_APP_PASSWORD }}
           subject: >
             【家族スケジュール】自動テスト結果
-            (${{ needs.unit-test.result == 'success' && needs.api-test.result == 'success' && needs.e2e-test.result == 'success' && '✅ 全テスト成功' || '❌ テスト失敗あり' }})
+            (${{ needs.unit-test.result == 'success' && needs.api-test.result == 'success' && needs.e2e-test.result == 'success' && '全テスト成功' || 'テスト失敗あり' }})
           to: plainliving.uk@gmail.com
           from: 家族スケジュール CI <${{ secrets.GMAIL_USERNAME }}>
           body: |

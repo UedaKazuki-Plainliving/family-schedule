@@ -73,9 +73,14 @@ class ScenarioFlowIT extends BaseApiTest {
         APIResponse d = delete("/api/schedules/" + id);
         assertThat(d.status()).isEqualTo(204);
 
-        Integer count = jdbc.queryForObject(
-                "SELECT count(*) FROM schedules WHERE id=?", Integer.class, id);
-        assertThat(count).isEqualTo(0);
+        // 論理削除なのでDBレコードは残るが deleted_at が設定される
+        Integer deletedCount = jdbc.queryForObject(
+                "SELECT count(*) FROM schedules WHERE id=? AND deleted_at IS NOT NULL", Integer.class, id);
+        assertThat(deletedCount).isEqualTo(1);
+
+        // 一覧 API には出てこない
+        APIResponse list = get("/api/schedules?from=2026-04-24&to=2026-04-25");
+        assertThat(om.readTree(list.text()).size()).isEqualTo(0);
     }
 
     @Test

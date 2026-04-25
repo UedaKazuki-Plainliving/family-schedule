@@ -102,6 +102,10 @@
                         <include>**/api/**</include>
                         <include>**/e2e/**</include>
                     </includes>
+                    <excludes>
+                        <!-- 本番環境専用テスト：Windowsパス依存のためCIでは除外 -->
+                        <exclude>**/ProductionE2ETest.java</exclude>
+                    </excludes>
                 </configuration>
                 <executions>
                     <execution>

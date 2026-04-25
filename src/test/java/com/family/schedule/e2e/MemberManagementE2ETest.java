@@ -19,7 +19,6 @@ class MemberManagementE2ETest extends BaseE2ETest {
         jdbc.execute("DELETE FROM members");
         jdbc.execute("INSERT INTO members (id, name, display_order) VALUES " +
                 "(1,'お父さん',1),(2,'お母さん',2),(3,'長女',3),(4,'次女',4),(5,'長男',5)");
-        jdbc.execute("ALTER TABLE members ALTER COLUMN id RESTART WITH 6");
     }
 
     private void openMemberModal() {
