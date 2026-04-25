@@ -1,0 +1,47 @@
+# 家族スケジュール - ローカル全部入り構成
+# 使い方:
+#   docker compose up -d        # 初回はビルド＋起動
+#   docker compose logs -f app  # ログ追跡
+#   docker compose down         # 停止（データは volume に残る）
+#   docker compose down -v      # データごと消す
+
+services:
+  db:
+    image: postgres:16
+    container_name: family-schedule-db
+    environment:
+      POSTGRES_USER: family
+      POSTGRES_PASSWORD: family
+      POSTGRES_DB: family_schedule
+      TZ: Asia/Tokyo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U family -d family_schedule"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    # LAN上の他端末から直接psqlしたい場合のみ公開（通常は不要）
+    # ports:
+    #   - "5432:5432"
+
+  app:
+    build: .
+    container_name: family-schedule-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/family_schedule
+      SPRING_DATASOURCE_USERNAME: family
+      SPRING_DATASOURCE_PASSWORD: family
+      TZ: Asia/Tokyo
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -Duser.timezone=Asia/Tokyo"
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

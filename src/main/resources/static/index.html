@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>家族スケジュール</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app" data-screen="loading">
+    <!-- S-01 利用者選択 -->
+    <section id="screen-select-user" class="screen" hidden>
+      <h1 class="title">家族スケジュール</h1>
+      <p class="prompt">あなたは誰？</p>
+      <div class="member-btns" id="member-btns"></div>
+    </section>
+
+    <!-- S-02 スケジュール画面 -->
+    <section id="screen-schedule" class="screen" hidden>
+      <header class="header">
+        <div class="current-user">👤 <span id="current-user-name"></span></div>
+        <div class="title-center">家族スケジュール</div>
+        <button type="button" id="btn-today" class="btn btn-ghost">今日に戻る</button>
+      </header>
+      <div class="date-heading">
+        <div class="date-col" id="date-heading-left"></div>
+        <div class="date-col" id="date-heading-right"></div>
+      </div>
+      <div class="schedule-grid" id="schedule-grid"></div>
+      <button type="button" id="btn-add" class="fab" aria-label="予定を追加">＋追加</button>
+    </section>
+
+    <!-- S-03 / S-04 モーダル -->
+    <div id="modal" class="modal" hidden>
+      <div class="modal-content">
+        <header class="modal-header">
+          <h2 id="form-title">予定を追加</h2>
+          <button type="button" id="btn-close" class="icon-btn" aria-label="閉じる">×</button>
+        </header>
+        <form id="schedule-form">
+          <label class="form-label">誰が？</label>
+          <div class="who-btns" id="who-btns"></div>
+
+          <label for="date-input" class="form-label">いつ？</label>
+          <input type="date" id="date-input" required />
+
+          <label for="content-input" class="form-label">
+            何を？ <span class="hint">(100文字まで)</span>
+          </label>
+          <textarea id="content-input" maxlength="100" rows="3"></textarea>
+
+          <p id="error-msg" class="error-msg" hidden></p>
+
+          <div class="form-actions">
+            <button type="button" id="btn-delete" class="btn btn-danger" hidden>削除</button>
+            <span class="spacer"></span>
+            <button type="button" id="btn-cancel" class="btn btn-ghost">キャンセル</button>
+            <button type="submit" id="btn-save" class="btn btn-primary">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- S-05 削除確認ダイアログ -->
+    <div id="confirm" class="modal" hidden>
+      <div class="modal-content confirm-content">
+        <p id="confirm-text"></p>
+        <div class="form-actions">
+          <button type="button" id="btn-no" class="btn btn-ghost">いいえ</button>
+          <button type="button" id="btn-yes" class="btn btn-danger">はい</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- トースト -->
+    <div id="toast" class="toast" hidden></div>
+  </div>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.946 s -- in com.family.schedule.repository.ScheduleRepositoryTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.289 s -- in com.family.schedule.web.ScheduleControllerTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.340 s -- in com.family.schedule.service.ScheduleServiceTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.025 s -- in com.family.schedule.service.ScheduleValidatorTest
+[INFO] Tests run: 29, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 18.43 s -- in com.family.schedule.e2e.ScenarioE2ETest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.215 s -- in com.family.schedule.e2e.ScreenTransitionE2ETest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS

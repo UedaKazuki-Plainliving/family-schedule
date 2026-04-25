@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.family.schedule.repository.ScheduleRepositoryTest
+-------------------------------------------------------------------------------
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.946 s -- in com.family.schedule.repository.ScheduleRepositoryTest

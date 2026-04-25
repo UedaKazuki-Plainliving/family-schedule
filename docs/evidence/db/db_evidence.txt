@@ -1,0 +1,50 @@
+=== DB Evidence ===
+Captured at: 2026-04-24T23:31:45+00:00
+
+## members table
+ id |   name   | display_order 
+----+----------+---------------
+  1 | お父さん |             1
+  2 | お母さん |             2
+  3 | そよ     |             3
+  4 | ゆうり   |             4
+  5 | いちろう |             5
+(5 rows)
+
+
+## schedules table after sample inserts
+ id | member_id |    date    |   content    |          created_at           |          updated_at           
+----+-----------+------------+--------------+-------------------------------+-------------------------------
+  1 |         1 | 2026-04-24 | 在宅         | 2026-04-24 23:31:45.157012+00 | 2026-04-24 23:31:45.157012+00
+  2 |         2 | 2026-04-24 | 病院         | 2026-04-24 23:31:45.193627+00 | 2026-04-24 23:31:45.193627+00
+  3 |         3 | 2026-04-24 | 部活         | 2026-04-24 23:31:45.22693+00  | 2026-04-24 23:31:45.22693+00
+  4 |         5 | 2026-04-25 | サッカー教室 | 2026-04-24 23:31:45.259813+00 | 2026-04-24 23:31:45.259813+00
+(4 rows)
+
+
+## schema (\d schedules)
+                                       Table "public.schedules"
+   Column   |           Type           | Collation | Nullable |                Default                
+------------+--------------------------+-----------+----------+---------------------------------------
+ id         | bigint                   |           | not null | nextval('schedules_id_seq'::regclass)
+ member_id  | integer                  |           | not null | 
+ date       | date                     |           | not null | 
+ content    | character varying(400)   |           | not null | 
+ created_at | timestamp with time zone |           | not null | now()
+ updated_at | timestamp with time zone |           | not null | now()
+Indexes:
+    "schedules_pkey" PRIMARY KEY, btree (id)
+    "ix_schedules_date_member" btree (date, member_id)
+Check constraints:
+    "schedules_content_check" CHECK (char_length(content::text) >= 1)
+Foreign-key constraints:
+    "schedules_member_id_fkey" FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE RESTRICT
+
+
+## index list
+                  List of relations
+ Schema |      Name      | Type  | Owner  |   Table   
+--------+----------------+-------+--------+-----------
+ public | schedules_pkey | index | family | schedules
+(1 row)
+
