@@ -26,7 +26,7 @@ jobs:
           cache: 'maven'
 
       - name: ユニットテスト実行
-        run: mvn test -B -Dtest="ScheduleValidatorTest,ScheduleServiceTest,ScheduleControllerTest,ScheduleRepositoryTest"
+        run: mvn test -B -e -Dtest="ScheduleValidatorTest,ScheduleServiceTest,ScheduleControllerTest,ScheduleRepositoryTest"
 
       - name: テストレポートをアップロード
         if: always()
@@ -52,7 +52,7 @@ jobs:
           cache: 'maven'
 
       - name: API 統合テスト実行
-        run: mvn failsafe:integration-test failsafe:verify -B -Dit.test="SchedulesApiIT,MembersApiIT,ScenarioFlowIT"
+        run: mvn verify -B -e -Dsurefire.skip=true -Dit.test="SchedulesApiIT,MembersApiIT,ScenarioFlowIT"
 
       - name: テストレポートをアップロード
         if: always()
@@ -78,7 +78,7 @@ jobs:
           cache: 'maven'
 
       - name: テストコンパイル
-        run: mvn test-compile -B
+        run: mvn test-compile -B -e
 
       - name: Playwright ブラウザ（Chromium）をインストール
         run: mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install --with-deps chromium"
