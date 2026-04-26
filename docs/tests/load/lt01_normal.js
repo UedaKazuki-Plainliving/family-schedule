@@ -51,6 +51,8 @@ export default function () {
     check(r, { 'status 201': (r) => r.status === 201 });
     if (r.status === 201) {
       const id = r.json('id');
+      // purge は soft-delete 後でないと 404 になる仕様のため DELETE → purge の順で実行
+      http.del(`${BASE}/api/schedules/${id}`, null, { headers: HEADERS });
       http.post(`${BASE}/api/schedules/${id}/purge`, null, { headers: HEADERS });
     }
 
