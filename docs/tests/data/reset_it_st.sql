@@ -27,6 +27,6 @@ UPDATE members SET name = '長男',     display_order = 5 WHERE id = 5;
 -- ========================================
 -- 確認クエリ（実行後に確認してください）
 -- ========================================
-SELECT 'メンバー' AS label, id, name, display_order FROM members ORDER BY id
-UNION ALL
-SELECT 'スケジュール件数', COUNT(*)::int, '', 0 FROM schedules;
+-- メンバー5名・スケジュール0件になっていれば成功
+SELECT id, name, display_order FROM members ORDER BY id;
+SELECT COUNT(*) AS schedule_count FROM schedules;
