@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |------|------|
 | 文書番号 | UT-SPEC-001 |
-| バージョン | 1.0.0 |
+| バージョン | 1.1.0 |
 | 作成日 | 2026-04-26 |
 | 対象システム | 家族スケジュール共有システム（Spring Boot 3.3.4） |
 | 作成者 | テストリーダー指示に基づき自動生成 |
@@ -83,7 +83,7 @@ mvn surefire-report:report
 | V-BOUNDARY | 境界値 | コードポイント数の境界（100/101）で仕様通りの動作をすること | H |
 | V-SURROGATE | サロゲートペア | 絵文字等のサロゲートペア文字がコードポイント単位で正しく計算されること | H |
 | V-MULTI | 複数エラー | 複数フィールドが同時に不正な場合、全エラーが返ること | H |
-| V-MEMBER | メンバーID範囲 | 有効メンバーID（1〜5）のハードコード仕様および越境値のテスト | H |
+| V-MEMBER | メンバーID範囲 | DB から動的に取得した有効メンバーIDセットによるバリデーションテスト | H |
 | S-CRUD | スケジュールCRUD | create/update/delete/restore/purge が正常に実行されること | H |
 | S-SOFTDELETE | 論理削除 | delete が物理削除ではなく deleted_at をセットすること | H |
 | S-NOTFOUND | 存在しないID | 存在しないまたは削除済みIDへの操作で NotFoundException が発生すること | H |
@@ -92,7 +92,7 @@ mvn surefire-report:report
 | M-CRUD | メンバーCRUD | create/rename/delete が正常に実行されること | H |
 | M-VALIDATION | メンバーバリデーション | 名前空白・長さ超過・上限超過・重複でそれぞれ ValidationException が発生すること | H |
 | M-RENAME | 改名特殊ケース | 自分と同じ名前への改名は重複チェックをスキップして許可されること | H |
-| M-LENGTHIMPL | 文字列長実装差異 | MemberService は `String.length()` を使用しており、ScheduleValidator の `codePointCount` と異なる点を確認すること | H |
+| M-CODEPOINT | 文字列長コードポイント | MemberService の名前長チェックは `codePointCount` を使用しており、絵文字も 1 コードポイントとして正しくカウントされること | H |
 
 ---
 
@@ -127,31 +127,28 @@ mvn test -Dtest=ScheduleValidatorTest#正常値全フィールド有効
 
 ---
 
-#### UT-V-02 memberId 範囲外（BUG-VALIDATOR 確認）
+#### UT-V-02 memberId 範囲外
 
 | 項目 | 内容 |
 |------|------|
 | テストケースID | UT-V-02 |
-| テスト対象 | `ScheduleValidator.validate()` |
-| 前提条件 | なし |
+| テスト対象 | `ScheduleValidator.validate(req, validMemberIds)` |
+| 前提条件 | `validMemberIds = Set.of(1, 2, 3, 4, 5)` を渡す |
 | 優先度 | H |
 
-> **注意: これはバグ確認テストです。**
-> `VALID_MEMBER_IDS = Set.of(1, 2, 3, 4, 5)` がソースコードにハードコードされており、
-> メンバーが追加された場合に自動的に対応しない設計上のバグ（BUG-VALIDATOR）が存在する。
-> 本テストでは `memberId=6` がエラーになることを「再現テスト」として検証する。
-> 修正対応については [5. 既知バグと対応テストケース](#5-既知バグと対応テストケース) を参照のこと。
+> **BUG-VALIDATOR は修正済み**。`validate()` は第2引数 `validMemberIds` を動的に受け取る方式になった。
+> `memberId=99` など渡したセット外の値はエラーになる。DB から取得したセットを渡すため、
+> 新規メンバー追加後もバリデーションが正しく機能する。
 
 | ステップ | 操作・入力 | 期待結果 |
 |---------|-----------|---------|
-| 1 | `validate(memberId=6, date=2026-04-26, content="塾")` を呼び出す | `errors.get("memberId")` = `"不正なメンバーです"` |
-| 2 | `validate(memberId=0, date=2026-04-26, content="塾")` を呼び出す | `errors.get("memberId")` = `"不正なメンバーです"` |
-| 3 | `validate(memberId=-1, date=2026-04-26, content="塾")` を呼び出す | `errors.get("memberId")` = `"不正なメンバーです"` |
-| 4 | （バグ再現確認）`validate(memberId=6, ...)` が **現状ではエラーになること**を確認する。修正後はDBから動的にメンバーIDを取得する実装に変更し、本テストを「memberId=6 が有効な場合はエラーにならない」よう更新する | BUG-VALIDATOR が存在する間は PASS、修正後は仕様変更に合わせて期待値を更新すること |
+| 1 | `validate(memberId=99, date=2026-04-26, content="塾", validMemberIds={1,2,3,4,5})` を呼び出す | `errors.get("memberId")` = `"不正なメンバーです"` |
+| 2 | `validate(memberId=0, date=2026-04-26, content="塾", validMemberIds={1,2,3,4,5})` を呼び出す | `errors.get("memberId")` = `"不正なメンバーです"` |
+| 3 | `validate(memberId=6, date=2026-04-26, content="塾", validMemberIds={1,2,3,4,5,6})` を呼び出す（6が有効）| `errors` マップが空（エラーなし） |
 
 実行コマンド:
 ```bash
-mvn test -Dtest=ScheduleValidatorTest#memberIdBugValidator
+mvn test -Dtest=ScheduleValidatorTest#memberId_範囲外はエラー
 ```
 
 ---
@@ -625,22 +622,19 @@ mvn test -Dtest=MemberServiceTest#createNameBlank
 | 前提条件 | `repository.count()` = 0 |
 | 優先度 | H |
 
-> **実装差異注記:**
-> `MemberService` は名前の長さを `name.length()` で判定している。
-> これは Java の `String.length()` であり、サロゲートペア（絵文字等）は 2 としてカウントされる。
-> 一方、`ScheduleValidator` は `codePointCount` を使用しており、同じ絵文字は 1 としてカウントされる。
-> この差異により、絵文字を含む名前では両者の長さ判定が異なる点に注意すること。
-> 例: `"😀".repeat(10)` は `String.length()` では 20 になるが、`codePointCount` では 10 になる。
-> 本テストでは `String.length()` に基づく動作を検証する。
+> **実装注記:**
+> `MemberService` は名前の長さを `name.codePointCount(0, name.length())` で判定している（ET-009 修正済み）。
+> サロゲートペア（絵文字等）は 1 コードポイントとしてカウントされるため、
+> `ScheduleValidator.codePointLength()` と一貫した動作になっている。
 
 | ステップ | 操作・入力 | 期待結果 |
 |---------|-----------|---------|
-| 1 | `create("a".repeat(20))` を呼び出す（ASCII 20文字、`length()` = 20） | `ValidationException` がスローされない（境界値:ちょうどOK） |
-| 2 | `create("a".repeat(21))` を呼び出す（ASCII 21文字、`length()` = 21） | `ValidationException` がスローされる |
-| 3 | `create("あ".repeat(20))` を呼び出す（全角 20文字、`length()` = 20） | `ValidationException` がスローされない |
-| 4 | `create("あ".repeat(21))` を呼び出す（全角 21文字、`length()` = 21） | `ValidationException` がスローされる |
-| 5 | `create("😀".repeat(10))` を呼び出す（絵文字 10個、`length()` = 20） | `ValidationException` がスローされない（`length()` = 20 で判定） |
-| 6 | `create("😀".repeat(11))` を呼び出す（絵文字 11個、`length()` = 22） | `ValidationException` がスローされる（`length()` = 22 で制限超過） |
+| 1 | `create("a".repeat(20))` を呼び出す（ASCII 20文字、codePoints = 20） | `ValidationException` がスローされない（境界値:ちょうどOK） |
+| 2 | `create("a".repeat(21))` を呼び出す（ASCII 21文字、codePoints = 21） | `ValidationException` がスローされる |
+| 3 | `create("あ".repeat(20))` を呼び出す（全角 20文字、codePoints = 20） | `ValidationException` がスローされない |
+| 4 | `create("あ".repeat(21))` を呼び出す（全角 21文字、codePoints = 21） | `ValidationException` がスローされる |
+| 5 | `create("😀".repeat(20))` を呼び出す（絵文字 20個、codePoints = 20） | `ValidationException` がスローされない（codePointCount = 20 でOK） |
+| 6 | `create("😀".repeat(21))` を呼び出す（絵文字 21個、codePoints = 21） | `ValidationException` がスローされる（codePointCount = 21 で制限超過） |
 
 実行コマンド:
 ```bash
@@ -834,15 +828,16 @@ mvn test -Dtest=MemberServiceTest#renameBlankName
 | 前提条件 | ID=1 のメンバーが存在する |
 | 優先度 | H |
 
-> **実装差異注記（UT-M-03 と同様）:**
-> `rename` においても名前の長さ判定は `String.length()` を使用している。
-> サロゲートペア（絵文字等）は 2 としてカウントされる点に注意すること。
+> **実装注記（UT-M-03 と同様）:**
+> `rename` においても名前の長さ判定は `codePointCount` を使用している（ET-009 修正済み）。
+> サロゲートペア（絵文字等）は 1 コードポイントとしてカウントされる。
 
 | ステップ | 操作・入力 | 期待結果 |
 |---------|-----------|---------|
 | 1 | `rename(id=1, newName="a".repeat(20))` を呼び出す | `ValidationException` がスローされない（20文字はOK） |
 | 2 | `rename(id=1, newName="a".repeat(21))` を呼び出す | `ValidationException` がスローされる |
-| 3 | `rename(id=1, newName="😀".repeat(11))` を呼び出す（絵文字11個, `length()` = 22） | `ValidationException` がスローされる（`length()` = 22 で制限超過） |
+| 3 | `rename(id=1, newName="😀".repeat(20))` を呼び出す（絵文字20個, codePoints = 20） | `ValidationException` がスローされない（codePointCount = 20 でOK） |
+| 4 | `rename(id=1, newName="😀".repeat(21))` を呼び出す（絵文字21個, codePoints = 21） | `ValidationException` がスローされる（codePointCount = 21 で制限超過） |
 
 実行コマンド:
 ```bash
@@ -900,42 +895,37 @@ active（通常）
 
 | バグID | 対象クラス | 概要 | 重大度 | 対応テストケース | ステータス |
 |--------|-----------|------|--------|----------------|-----------|
-| BUG-VALIDATOR | `ScheduleValidator` | `VALID_MEMBER_IDS` がソースコードにハードコードされており、DBのメンバー増減に追従しない | High | UT-V-01、UT-V-02 | 未修正 |
+| BUG-VALIDATOR | `ScheduleValidator` | `VALID_MEMBER_IDS` がソースコードにハードコードされており、DBのメンバー増減に追従しない | High | UT-V-01、UT-V-02 | ✅ **修正済み** |
 
 ---
 
-### BUG-VALIDATOR 詳細
+### BUG-VALIDATOR 詳細（修正済み）
 
-#### 概要
+#### 修正内容
 
 ```java
-// ScheduleValidator.java 内の問題箇所
-private static final Set<Integer> VALID_MEMBER_IDS = Set.of(1, 2, 3, 4, 5); // ← ハードコードバグ
+// 修正前（ScheduleValidator.java）
+private static final Set<Integer> VALID_MEMBER_IDS = Set.of(1, 2, 3, 4, 5); // ハードコードバグ
+public static Map<String, String> validate(ScheduleRequest req) { ... }
+
+// 修正後
+public static Map<String, String> validate(ScheduleRequest req, Set<Integer> validMemberIds) { ... }
 ```
 
-`VALID_MEMBER_IDS` に `{1, 2, 3, 4, 5}` がハードコードされているため、以下の問題が発生する。
+呼び出し側（`ScheduleService`）で `memberService.nameById().keySet()` を渡すことで、
+DB の実際のメンバー構成を動的に反映するようになった。
 
-#### 問題の影響
+#### 修正後の動作
 
-| シナリオ | 影響 |
+| シナリオ | 動作 |
 |---------|------|
-| 6人目のメンバーをDBに追加した場合 | `memberId=6` でスケジュール作成ができない（「不正なメンバーです」エラーが出る） |
-| メンバーを削除した場合（例: ID=3を削除） | 削除されたメンバーID=3 でもスケジュール作成が通ってしまう |
-| メンバーIDの採番が1〜5以外になる場合 | バリデーションが常に失敗する |
+| 6人目のメンバー（id=100〜）を追加した場合 | `nameById().keySet()` に含まれるため、予定登録が正常に成功する |
+| 存在しないメンバーIDを指定した場合 | セット外の値として「不正なメンバーです」エラーが返る |
 
-#### テストによる再現方法
+#### 修正に伴うテストの変更
 
-- **UT-V-02**（ステップ1）: `memberId=6` を渡すと「不正なメンバーです」エラーが返ることを確認する
-- 修正前: UT-V-02 が PASS（バグが再現できている）
-- 修正後: UT-V-02 の期待値を「memberId=6 が有効なメンバーとして登録されていれば、エラーにならない」に更新する必要がある
-
-#### 修正方針
-
-| 項目 | 内容 |
-|------|------|
-| 修正方法 | `MemberRepository`（またはService）をDIし、有効なメンバーIDを動的に取得する |
-| 修正後の実装イメージ | `if (!memberRepository.existsById(req.memberId()))` でチェックする |
-| 注意事項 | 修正後は `ScheduleValidator` がstaticクラスからインスタンスを持つクラスに変わる可能性がある。テストも合わせてモック注入方式に変更が必要 |
+- `ScheduleValidatorTest`: 全テストメソッドが `validate(req, Set.of(1,2,3,4,5))` の2引数形式に更新済み
+- UT-V-02: バグ再現テストから通常の境界値テストに役割変更
 
 ---
 

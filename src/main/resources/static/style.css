@@ -63,7 +63,7 @@ button {
 .current-user-btn {
   background: none;
   border: none;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--color-muted);
   padding: 0 4px;
   min-height: var(--tap);
@@ -116,13 +116,13 @@ button {
   word-break: break-word;
 }
 .schedule-item:hover { background: var(--color-bg-alt); }
-.schedule-item-text { display: block; padding-right: 20px; }
+.schedule-item-text { display: block; padding-right: 44px; }
 .schedule-item-delete {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 20px;
-  height: 20px;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
   min-height: unset;
   min-width: unset;
   background: none;
@@ -256,6 +256,7 @@ textarea#content-input { resize: vertical; }
 }
 .btn-primary { background: var(--color-primary); color: white; border-color: var(--color-primary); }
 .btn-primary:disabled { background: #888; border-color: #888; }
+#btn-today:disabled { opacity: 0.4; cursor: default; }
 .btn-ghost { background: white; color: var(--color-text); border-color: var(--color-border); }
 .btn-danger { background: var(--color-danger); color: white; border-color: var(--color-danger); }
 

@@ -9,9 +9,8 @@ import java.util.Set;
 public class ScheduleValidator {
 
     public static final int MAX_CONTENT_LENGTH = 100;
-    private static final Set<Integer> VALID_MEMBER_IDS = Set.of(1, 2, 3, 4, 5);
 
-    public static Map<String, String> validate(ScheduleRequest req) {
+    public static Map<String, String> validate(ScheduleRequest req, Set<Integer> validMemberIds) {
         Map<String, String> errors = new LinkedHashMap<>();
         if (req == null) {
             errors.put("_", "リクエストが空です");
@@ -19,7 +18,7 @@ public class ScheduleValidator {
         }
         if (req.memberId() == null) {
             errors.put("memberId", "誰を選んでください");
-        } else if (!VALID_MEMBER_IDS.contains(req.memberId())) {
+        } else if (!validMemberIds.contains(req.memberId())) {
             errors.put("memberId", "不正なメンバーです");
         }
         if (req.date() == null) {

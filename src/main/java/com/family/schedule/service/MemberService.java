@@ -2,6 +2,7 @@ package com.family.schedule.service;
 
 import com.family.schedule.domain.Member;
 import com.family.schedule.repository.MemberRepository;
+import com.family.schedule.repository.ScheduleRepository;
 import com.family.schedule.web.dto.MemberRequest;
 import com.family.schedule.web.dto.MemberResponse;
 import org.springframework.stereotype.Service;
@@ -17,9 +18,11 @@ public class MemberService {
     static final int MAX_MEMBERS = 10;
 
     private final MemberRepository repository;
+    private final ScheduleRepository scheduleRepository;
 
-    public MemberService(MemberRepository repository) {
+    public MemberService(MemberRepository repository, ScheduleRepository scheduleRepository) {
         this.repository = repository;
+        this.scheduleRepository = scheduleRepository;
     }
 
     @Transactional(readOnly = true)
@@ -41,7 +44,7 @@ public class MemberService {
         if (name.isBlank()) {
             throw new ValidationException("名前を入力してください", Map.of("name", "名前を入力してください"));
         }
-        if (name.length() > 20) {
+        if (name.codePointCount(0, name.length()) > 20) {
             throw new ValidationException("名前は20文字以内で入力してください", Map.of("name", "名前は20文字以内で入力してください"));
         }
         if (repository.count() >= MAX_MEMBERS) {
@@ -50,9 +53,8 @@ public class MemberService {
         if (repository.existsByName(name)) {
             throw new ValidationException("同じ名前のメンバーが既に存在します", Map.of("name", "同じ名前のメンバーが既に存在します"));
         }
-        int nextId = repository.findMaxId() + 1;
         int nextOrder = repository.findMaxDisplayOrder() + 1;
-        Member m = new Member(nextId, name, nextOrder);
+        Member m = new Member(name, nextOrder);
         return MemberResponse.of(repository.save(m));
     }
 
@@ -64,7 +66,7 @@ public class MemberService {
         if (name.isBlank()) {
             throw new ValidationException("名前を入力してください", Map.of("name", "名前を入力してください"));
         }
-        if (name.length() > 20) {
+        if (name.codePointCount(0, name.length()) > 20) {
             throw new ValidationException("名前は20文字以内で入力してください", Map.of("name", "名前は20文字以内で入力してください"));
         }
         if (!m.getName().equals(name) && repository.existsByName(name)) {
@@ -78,6 +80,7 @@ public class MemberService {
     public void delete(Integer id) {
         Member m = repository.findById(id)
                 .orElseThrow(() -> new NotFoundException("メンバーが見つかりません: " + id));
+        scheduleRepository.deleteByMemberIdAndDeletedAtIsNotNull(id);
         repository.delete(m);
     }
 }

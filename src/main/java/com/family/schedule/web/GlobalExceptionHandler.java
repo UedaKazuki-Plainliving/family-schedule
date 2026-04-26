@@ -72,6 +72,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
+        String msg = ex.getMostSpecificCause().getMessage();
+        if (msg != null && msg.toLowerCase().contains("unique")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ErrorResponse.validation("同じ名前のメンバーが既に存在します", Map.of("name", "同じ名前のメンバーが既に存在します")));
+        }
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.validation("このメンバーには予定が登録されています。先に予定を削除してください。", Map.of()));
     }

@@ -26,7 +26,7 @@ public class Schedule {
     @Column(nullable = false)
     private LocalDate date;
 
-    @Column(nullable = false, length = 400)
+    @Column(nullable = false, length = 100)
     private String content;
 
     @Column(name = "created_at", nullable = false)

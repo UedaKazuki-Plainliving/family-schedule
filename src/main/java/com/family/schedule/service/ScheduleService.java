@@ -42,7 +42,7 @@ public class ScheduleService {
 
     @Transactional
     public ScheduleResponse create(ScheduleRequest req) {
-        Map<String, String> errors = ScheduleValidator.validate(req);
+        Map<String, String> errors = ScheduleValidator.validate(req, memberService.nameById().keySet());
         if (!errors.isEmpty()) throw new ValidationException("入力に誤りがあります", errors);
         Schedule saved = repository.save(new Schedule(req.memberId(), req.date(), req.content().strip()));
         return ScheduleResponse.of(saved, memberService.nameById().getOrDefault(saved.getMemberId(), ""));
@@ -50,7 +50,7 @@ public class ScheduleService {
 
     @Transactional
     public ScheduleResponse update(Long id, ScheduleRequest req) {
-        Map<String, String> errors = ScheduleValidator.validate(req);
+        Map<String, String> errors = ScheduleValidator.validate(req, memberService.nameById().keySet());
         if (!errors.isEmpty()) throw new ValidationException("入力に誤りがあります", errors);
         Schedule s = repository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new NotFoundException("schedule not found: " + id));

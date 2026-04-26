@@ -253,8 +253,6 @@ H2インメモリDBを使っているため、**サーバーを再起動する�
 
 REST API の各エンドポイントについて、正常系・異常系・境界値を網羅的に検証し、
 サービス全体が設計仕様どおりに動作することを確認する。
-あわせて、既知バグ **BUG-VALIDATOR**（`ScheduleValidator.VALID_MEMBER_IDS` のハードコード）を
-テストとして記録し、再現手順を明確に残す。
 
 ### 1.2 スコープ
 
@@ -275,7 +273,7 @@ REST API の各エンドポイントについて、正常系・異常系・境�
 
 - 全テストケースで期待 HTTP ステータスコードが一致すること
 - JSON レスポンスのフィールド・値が仕様と一致すること
-- **BUG-VALIDATOR 関連テスト（IT-S-11、IT-SC-02）は「FAIL（既知バグ）」として記録し、合格対象外とする**
+- BUG-VALIDATOR は修正済み。IT-S-11・IT-SC-02 も合格対象に含める
 
 ### 1.4 テスト環境
 
@@ -384,7 +382,7 @@ curl http://localhost:8080/api/members
 | IT-S-08 | POST /api/schedules | 内容100文字ちょうどは登録できる | 201 | H |
 | IT-S-09 | POST /api/schedules | 内容101文字は弾かれる | 400 | H |
 | IT-S-10 | POST /api/schedules | 絵文字100コードポイントは登録できる | 201 | M |
-| IT-S-11 | POST /api/schedules | memberId=6は400になる（バグ） | 400 | H |
+| IT-S-11 | POST /api/schedules | 追加済みメンバー(id≥6)でも予定登録できる | 201 | H |
 | IT-S-12 | POST /api/schedules | memberId=5は登録できる | 201 | M |
 | IT-S-13 | PUT /api/schedules/{id} | 予定内容を変更できる | 200 | H |
 | IT-S-14 | PUT /api/schedules/{id} | 存在しないIDは変更できない | 404 | H |
@@ -401,7 +399,7 @@ curl http://localhost:8080/api/members
 | ID | 確認内容 | 優先度 |
 |----|---------|------|
 | IT-SC-01 | 登録→確認→削除→復元→完全削除の一連操作 | H |
-| IT-SC-02 | 新メンバー追加後に予定登録が失敗する（バグ確認） | H |
+| IT-SC-02 | 新メンバー追加後に予定登録が成功する（BUG-VALIDATOR 修正確認） | H |
 | IT-SC-03 | 閏日（2028-02-29）に予定登録できる | M |
 | IT-SC-04 | 存在しない閏日（2027-02-29）は弾かれる | M |
 | IT-SC-05 | 2ユーザーが同時更新した場合、最後の更新が反映される（NFR-07） | L |
@@ -1383,22 +1381,15 @@ SELECT * FROM schedules;
 
 ---
 
-### IT-SC-02 新しく追加したメンバーへの予定登録が失敗する（BUG-VALIDATOR）
+### IT-SC-02 新しく追加したメンバーへの予定登録ができること（BUG-VALIDATOR 修正確認）
 
 | 項目 | 内容 |
 |------|------|
 | テストケースID | IT-SC-02 |
-| 判定 | **FAIL（既知バグ・合格対象外）** |
-| バグ番号 | BUG-VALIDATOR |
+| 前提条件 | BUG-VALIDATOR 修正済み（`validate()` が動的メンバーIDを参照） |
 | 優先度 | H |
 
-> **このテストについて**: このテストは**失敗することが正解**です。
-> バグが存在することを確認・記録するためのテストです。
-> `400` が返ってきたら「バグが再現できた」＝「このテストは記録OK」です。
-
-**バグの内容**: アプリ内部のコード（`ScheduleValidator.java`）に
-`VALID_MEMBER_IDS = {1, 2, 3, 4, 5}` というハードコードがあり、
-ID=6以上のメンバーには永遠に予定を登録できない状態になっています。
+> **修正確認テスト**: BUG-VALIDATOR が修正されたため、追加したメンバーへの予定登録が正常に成功することを確認する。
 
 ---
 
@@ -1411,38 +1402,38 @@ curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -d '{"name":"おじいちゃん"}'
 ```
 
-期待: `HTTP_STATUS:201` / `"id":6` が含まれること
+期待: `HTTP_STATUS:201` / `"id"` が返ること（シーケンスにより 100 以上になる）
 
 ---
 
-**ステップ2: ID=6のメンバーに予定を登録しようとする**
+**ステップ2: 新しいメンバーIDで予定を登録する**
+
+```bash
+# ステップ1で得たIDを使用（例: id=100）
+MEMBER_ID=$(curl -s -X POST http://localhost:8080/api/members \
+  -H "Content-Type: application/json" \
+  -d '{"name":"おじいちゃん2"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules \
+  -H "Content-Type: application/json" \
+  -d "{\"memberId\":${MEMBER_ID},\"date\":\"2026-05-01\",\"content\":\"散歩\"}"
+```
+
+期待: `HTTP_STATUS:201`（修正後は正常に登録できる）
+
+---
+
+**ステップ3: 存在しないメンバーIDは引き続きエラーになること**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -X POST http://localhost:8080/api/schedules \
   -H "Content-Type: application/json" \
-  -d '{"memberId":6,"date":"2026-05-01","content":"散歩"}'
+  -d '{"memberId":99999,"date":"2026-05-01","content":"散歩"}'
 ```
 
-**バグが確認できた場合の表示（これが「正解」）:**
-
-```
-{"error":"VALIDATION","message":"入力に誤りがあります","fields":{"memberId":"不正なメンバーです"}}
-HTTP_STATUS:400
-```
-
----
-
-**ステップ3: ID=5（長男）には問題なく登録できることを確認する**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":5,"date":"2026-05-01","content":"サッカー"}'
-```
-
-期待: `HTTP_STATUS:201`（ID=1〜5は正常に動く）
+期待: `HTTP_STATUS:400` / `fields.memberId` = `"不正なメンバーです"`
 
 ---
 
@@ -1450,12 +1441,9 @@ curl -s -w "\nHTTP_STATUS:%{http_code}" \
 
 | ステップ | 期待 | 実際 | 記録 |
 |---------|------|------|------|
-| 1 メンバー追加 | 201 + id=6 | | |
-| 2 ID=6 で予定登録 | **400**（バグ再現） | | |
-| 3 ID=5 で予定登録 | 201（正常動作） | | |
-
-> ステップ2が `400` になれば **BUG-VALIDATOR が再現できた**として記録してください。
-> `201` になった場合はバグが修正されている可能性があります。開発担当者に連絡してください。
+| 1 メンバー追加 | 201 | | |
+| 2 新メンバーIDで予定登録 | **201**（修正済み） | | |
+| 3 不正IDで予定登録 | 400（正常動作） | | |
 
 ---
 
@@ -1602,20 +1590,19 @@ APIがエラーを返すとき、常に以下の形式のJSONが返ってきま�
 
 ---
 
-## 第8章 既知バグ BUG-VALIDATOR 専用テスト
+## 第8章 BUG-VALIDATOR 修正記録
 
-このバグは **IT-SC-02** で再現手順を説明しています。
-以下に概要と修正方針をまとめます。
+このバグは **IT-SC-02** で修正確認手順を説明しています。
 
-**バグの概要:**
+**修正概要:**
 
 | 項目 | 内容 |
 |------|------|
 | バグID | BUG-VALIDATOR |
-| 発生箇所 | `src/main/java/com/family/schedule/service/ScheduleValidator.java` 12行目 |
-| 内容 | `VALID_MEMBER_IDS = Set.of(1, 2, 3, 4, 5)` とハードコードされているため、ID=6以上のメンバーへの予定登録が常に 400 エラーになる |
-| 影響 | メンバーを6人目以降に追加しても、そのメンバーの予定が一切登録できない |
-| 修正方針 | `ScheduleValidator` でのハードコード検証を廃止し、`MemberRepository.existsById()` を使った動的なメンバー存在確認に置き換える |
+| ステータス | ✅ **修正済み** |
+| 修正箇所 | `src/main/java/com/family/schedule/service/ScheduleValidator.java` |
+| 修正内容 | `VALID_MEMBER_IDS` の static ハードコードを廃止。`validate(ScheduleRequest req, Set<Integer> validMemberIds)` に変更し、呼び出し元の `ScheduleService` が `memberService.nameById().keySet()` を動的に渡す |
+| 修正後の動作 | ID=100 以上の追加メンバーへの予定登録が正常に成功する |
 
 ---
 
@@ -1654,11 +1641,11 @@ APIがエラーを返すとき、常に以下の形式のJSONが返ってきま�
 | IT-S-20 | 予定完全削除（purge） | 204 | | | |
 | IT-S-21 | purge（論理削除前） | 404 | | | |
 | IT-SC-01 | 一連フロー | 全ステップ合格 | | | |
-| IT-SC-02 | BUG-VALIDATOR再現 | **FAIL（バグ確認）** | | | |
+| IT-SC-02 | 新メンバー予定登録（修正確認） | 201 | | | |
 | IT-SC-03 | 閏日登録 | 201 | | | |
 | IT-SC-04 | 存在しない閏日 | 400 | | | |
 | IT-SC-05 | 同時更新（Last-Write-Wins） | A:200 / B:200 / 最終:一方の値 | | | |
 
-**総合判定:** 合格 / 不合格 （IT-SC-02を除く全件合格で「合格」）
+**総合判定:** 合格 / 不合格 （全件合格で「合格」）
 
 **特記事項:**

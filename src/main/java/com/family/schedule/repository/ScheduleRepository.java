@@ -11,4 +11,5 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findByDateBetweenAndDeletedAtIsNullOrderByDateAscMemberIdAscIdAsc(LocalDate from, LocalDate to);
     Optional<Schedule> findByIdAndDeletedAtIsNull(Long id);
     Optional<Schedule> findByIdAndDeletedAtIsNotNull(Long id);
+    void deleteByMemberIdAndDeletedAtIsNotNull(Integer memberId);
 }

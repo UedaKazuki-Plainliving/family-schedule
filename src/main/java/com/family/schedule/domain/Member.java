@@ -2,7 +2,10 @@ package com.family.schedule.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
 @Entity
@@ -10,6 +13,8 @@ import jakarta.persistence.Table;
 public class Member {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "members_id_seq")
+    @SequenceGenerator(name = "members_id_seq", sequenceName = "members_id_seq", allocationSize = 1)
     private Integer id;
 
     @Column(nullable = false, unique = true)
@@ -20,8 +25,7 @@ public class Member {
 
     protected Member() {}
 
-    public Member(Integer id, String name, Integer displayOrder) {
-        this.id = id;
+    public Member(String name, Integer displayOrder) {
         this.name = name;
         this.displayOrder = displayOrder;
     }

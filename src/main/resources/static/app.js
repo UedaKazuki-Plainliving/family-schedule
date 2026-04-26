@@ -52,7 +52,12 @@ async function commitPendingUndo() {
   clearTimeout(state.pendingUndo.timerId);
   const id = state.pendingUndo.id;
   state.pendingUndo = null;
-  try { await api('POST', `/api/schedules/${id}/purge`); } catch {}
+  document.getElementById('toast').hidden = true;
+  try {
+    await api('POST', `/api/schedules/${id}/purge`);
+  } catch {
+    showToast('削除の確定に失敗しました');
+  }
 }
 
 function showUndoToast(id) {
@@ -70,7 +75,11 @@ function showUndoToast(id) {
   const timerId = setTimeout(async () => {
     t.hidden = true;
     state.pendingUndo = null;
-    try { await api('POST', `/api/schedules/${id}/purge`); } catch {}
+    try {
+      await api('POST', `/api/schedules/${id}/purge`);
+    } catch (err) {
+      console.warn('自動purge失敗 scheduleId=', id, err);
+    }
   }, 5000);
 
   state.pendingUndo = { id, timerId };
@@ -136,6 +145,7 @@ async function showSchedule() {
 async function loadAndRender() {
   const from = toISODate(state.viewDate);
   const to = toISODate(addDays(state.viewDate, 1));
+  document.getElementById('btn-today').disabled = (from === toISODate(new Date()));
   document.getElementById('date-heading-left').textContent = '今日 ' + dayLabel(state.viewDate);
   document.getElementById('date-heading-right').textContent = '明日 ' + dayLabel(addDays(state.viewDate, 1));
   const list = await api('GET', `/api/schedules?from=${from}&to=${to}`);
@@ -221,7 +231,8 @@ function openCreate() {
   document.getElementById('btn-delete').hidden = true;
   state.selectedWho = state.currentUser.id;
   renderWhoBtns();
-  document.getElementById('date-input').value = toISODate(state.viewDate);
+  const today = toISODate(new Date());
+  document.getElementById('date-input').value = toISODate(state.viewDate) >= today ? toISODate(state.viewDate) : today;
   document.getElementById('content-input').value = '';
   document.getElementById('error-msg').hidden = true;
   document.getElementById('modal').hidden = false;
@@ -334,6 +345,10 @@ async function submitForm(ev) {
   ev.preventDefault();
   const content = document.getElementById('content-input').value;
   const date = document.getElementById('date-input').value;
+  if (!date) {
+    showError('日付を入力してください');
+    return;
+  }
   if (!content || !content.trim()) {
     showError('内容を入力してください');
     return;
@@ -394,12 +409,14 @@ async function doDelete() {
 function enableFlick() {
   const area = document.getElementById('screen-schedule');
   let startX = null, startY = null;
+  let lastTouchEnd = 0;
   area.addEventListener('touchstart', e => {
     const t = e.touches[0];
     startX = t.clientX; startY = t.clientY;
   }, { passive: true });
   area.addEventListener('touchend', e => {
     if (startX == null) return;
+    lastTouchEnd = Date.now();
     const t = e.changedTouches[0];
     const dx = t.clientX - startX;
     const dy = t.clientY - startY;
@@ -414,11 +431,12 @@ function enableFlick() {
   // マウスでのフリック（テスト/PC 用）
   let mx = null, my = null, dragging = false;
   area.addEventListener('mousedown', e => {
-    if (e.target.closest('.schedule-item') || e.target.closest('button')) return;
+    if (e.target.closest('.schedule-item') || e.target.closest('button') || e.target.closest('.header')) return;
     mx = e.clientX; my = e.clientY; dragging = true;
   });
   area.addEventListener('mouseup', e => {
     if (!dragging) return;
+    if (Date.now() - lastTouchEnd < 300) { dragging = false; return; }
     const dx = e.clientX - mx;
     const dy = e.clientY - my;
     if (Math.abs(dx) >= 30 && Math.abs(dy) <= 20) {
@@ -482,6 +500,9 @@ function openMemberModal() {
 }
 
 function closeMemberModal() {
+  document.querySelectorAll('.member-manage-item').forEach(li => {
+    if (li._cancelRename) li._cancelRename();
+  });
   document.getElementById('member-modal').hidden = true;
 }
 
@@ -530,7 +551,7 @@ function renderMemberManageList() {
 }
 
 function startRename(li, nameSpan, m) {
-  if (li.querySelector('.member-rename-input')) return; // 既に編集中
+  if (li.querySelector('.member-rename-input')) return;
 
   const input = document.createElement('input');
   input.type = 'text';
@@ -543,13 +564,23 @@ function startRename(li, nameSpan, m) {
   input.focus();
   input.select();
 
+  let committed = false;
+
+  const cancel = () => {
+    if (committed) return;
+    committed = true;
+    delete li._cancelRename;
+    nameSpan.hidden = false;
+    input.remove();
+  };
+  li._cancelRename = cancel;
+
   const save = async () => {
+    if (committed) return;
     const newName = input.value.trim();
-    if (!newName || newName === m.name) {
-      nameSpan.hidden = false;
-      input.remove();
-      return;
-    }
+    if (!newName || newName === m.name) { cancel(); return; }
+    committed = true;
+    delete li._cancelRename;
     try {
       await api('PUT', `/api/members/${m.id}`, { name: newName });
       state.members = await api('GET', '/api/members');
@@ -574,9 +605,9 @@ function startRename(li, nameSpan, m) {
 
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); save(); }
-    if (e.key === 'Escape') { nameSpan.hidden = false; input.remove(); }
+    if (e.key === 'Escape') { cancel(); }
   });
-  input.addEventListener('blur', save);
+  input.addEventListener('blur', () => setTimeout(save, 150));
 }
 
 async function confirmDeleteMember(m) {
