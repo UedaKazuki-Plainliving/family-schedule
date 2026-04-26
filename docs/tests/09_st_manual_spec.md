@@ -1,14 +1,196 @@
 # システムテスト仕様書
 
-- ドキュメントID：ST-SPEC-001
-- バージョン：v1.0
-- 作成日：2026-04-26
-- 作成者：テスト担当
-- 対象システム：家族スケジュール共有システム
-- 関連文書：
-  - [要件定義書 v0.6](../requirements/requirements.md)
-  - [画面詳細仕様書 v0.4](../design/02_screen_spec.md)
-  - [API仕様書 v0.2](../design/03_api_spec.md)
+| 項目 | 内容 |
+|------|------|
+| ドキュメントID | ST-SPEC-001 |
+| バージョン | v1.1（初心者向け準備ガイド追加） |
+| 作成日 | 2026-04-26 |
+| 対象システム | 家族スケジュール共有システム |
+| 関連文書 | [要件定義書](../requirements/requirements.md) / [画面仕様書](../design/02_screen_spec.md) / [API仕様書](../design/03_api_spec.md) |
+
+> **このドキュメントについて**
+> ブラウザを使った画面操作のテストです。プログラミング経験がない方でも実施できるよう、
+> ツールの使い方から丁寧に説明しています。初めての方は「**第0章 準備ガイド**」から読んでください。
+
+---
+
+## 第0章 準備ガイド（はじめての方へ）
+
+### 0.1 このテストで行うこと
+
+このテストは「**ブラウザ画面テスト**（UIテスト）」です。
+実際にブラウザでアプリを開き、ボタンをクリックして、画面の見た目・動作が正しいかを確認します。
+
+```
+あなたのPC
+  └── ブラウザ（Chrome）でアプリを開く
+        └── 画面をクリック・操作する
+              └── 期待通りの表示・動作になっているか確認する
+```
+
+**必要なもの:**
+- Google Chrome（最新版）
+- テスト対象サーバー（起動手順は第2章参照）
+
+---
+
+### 0.2 ブラウザ（Chrome）の準備
+
+**Chrome のインストール（まだ入っていない場合）:**
+
+1. ブラウザで `https://www.google.com/chrome/` を開く
+2. 「Chrome をダウンロード」をクリック
+3. ダウンロードされたファイルをダブルクリックしてインストール
+
+**動作確認:**
+Chromeを起動し、アドレスバーに `http://localhost:8080` と入力して Enter を押す。
+アプリの画面（利用者選択画面）が表示されれば準備OK。
+
+---
+
+### 0.3 DevTools（開発者ツール）の開き方
+
+DevTools はブラウザに内蔵された調査ツールです。
+テストで LocalStorage の確認・変更が必要な場合に使います。
+
+**DevTools を開く方法（どれでもOK）:**
+
+| 方法 | 操作 |
+|------|------|
+| キーボード | `F12` キーを押す |
+| メニュー | Chrome右上の「⋮（縦3点ボタン）」→「その他ツール」→「デベロッパー ツール」 |
+| 右クリック | ページ上で右クリック →「検証」または「Inspect」 |
+
+**DevTools が開いたら:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Elements │ Console │ Sources │ Network │ Application │ ...  │  ← タブ
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  （各タブをクリックすると内容が切り替わる）                      │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+> ⚠️ DevTools が画面の邪魔な場合は、DevTools 右上の「⋮」→「Dock side」から位置を変えられます。
+
+---
+
+### 0.4 LocalStorage の操作方法
+
+**LocalStorage とは:** ブラウザがこのアプリのために保存している小さなデータです。
+「誰が使っているか（ログインユーザー）」を記録するために使われています。
+
+テストの開始前には多くの場合、LocalStorage を **クリア（消去）** する必要があります。
+
+#### LocalStorage を確認・変更する手順
+
+**ステップ1:** DevTools を開く（F12）
+
+**ステップ2:** 「Application」タブをクリックする
+
+```
+Elements │ Console │ Sources │ Network │ Application
+                                        ↑ここをクリック
+```
+
+> ⚠️ 「Application」タブが見えない場合は DevTools の幅を広げるか、タブ右端の「»」をクリックして探してください。
+
+**ステップ3:** 左側のメニューで「Local Storage」→「http://localhost:8080」をクリックする
+
+```
+▼ Storage
+   ▼ Local Storage
+      http://localhost:8080  ← ここをクリック
+   ▼ Session Storage
+   ...
+```
+
+**ステップ4:** 右側のテーブルに保存されているデータが表示される
+
+```
+Key                              │ Value
+─────────────────────────────────┼──────────────────────────────────
+familySchedule.currentUser       │ {"id":1,"name":"お父さん",...}
+```
+
+#### LocalStorage を削除（クリア）する
+
+テスト開始前に「前のテストのデータが残っていない」状態にします。
+
+**方法A: 特定のキーだけ削除する**
+1. テーブルで `familySchedule.currentUser` の行をクリックして選択
+2. キーボードの `Delete` キーを押す
+
+**方法B: 全部まとめて削除する（確実な方法）**
+1. Application タブで「Storage」→「Clear site data」をクリック
+
+または
+
+1. アドレスバー左の「🔒」または「ℹ️」アイコンをクリック
+2. 「サイトの設定」→「データを消去」をクリック
+
+#### LocalStorage に値を手動セットする（コンソールを使う場合）
+
+一部のテストでは LocalStorage に特定の値を入れた状態からテストを開始します。
+その場合は Console タブを使います。
+
+**ステップ1:** DevTools で「Console」タブをクリック
+
+**ステップ2:** 以下をコピーして貼り付け、Enter を押す
+
+```javascript
+// お父さんとしてログイン済みの状態にする
+localStorage.setItem('familySchedule.currentUser', JSON.stringify({id:1, name:"お父さん", displayOrder:1}));
+```
+
+> コピー後、Console の入力欄（`>`の右側）に貼り付けてEnterを押してください。
+> `undefined` と表示されれば成功です。
+
+**確認:**
+
+```javascript
+// 現在の値を確認する
+localStorage.getItem('familySchedule.currentUser');
+```
+
+`'{"id":1,"name":"お父さん","displayOrder":1}'` のような文字列が返れば成功です。
+
+---
+
+### 0.5 スクリーンショットの取り方（テスト証跡用）
+
+テストを実施したら証跡（スクリーンショット）を保存してください。
+
+| OS | 操作 |
+|----|------|
+| Windows | `Win + Shift + S` → 範囲を選択 → 保存 |
+| Windows（全画面） | `PrintScreen` キー → 画像アプリに貼り付け → 保存 |
+| Mac | `Cmd + Shift + 4` → 範囲を選択 → デスクトップに自動保存 |
+
+**ファイル名の付け方:**
+
+```
+{日付}_{テストケースID}_{ステップ番号}_{内容}.png
+例: 20260426_ST-01-01_step1_S01表示確認.png
+```
+
+保存先: `docs/evidence/{テストケースID}/` フォルダ
+
+---
+
+### 0.6 テスト結果ステータスの意味
+
+| ステータス | 意味 | 記録方法 |
+|-----------|------|---------|
+| **PASS** | 期待通りに動作した | ○ |
+| **FAIL** | 期待と異なる動作をした（バグの可能性） | × + 内容を記録 |
+| **KNOWN_FAIL** | 既知のバグが再現された（想定内） | △(既知バグ番号) |
+| **SKIP** | 実施できなかった（環境・時間の都合など） | S + 理由を記録 |
+
+> **KNOWN_FAIL の代表例**: BUG-VALIDATOR（ST-06-07）は追加メンバーへの予定登録が必ず 400 エラーになります。
+> これは把握済みのバグです。400 が返ってきたら「KNOWN_FAIL」として記録してください。
 
 ---
 
@@ -74,16 +256,34 @@
 
 ### 2.1 サーバー起動
 
-```bash
-# Docker Compose で起動（推奨）
-cd /path/to/family-schedule
-docker-compose up -d
+ターミナル（コマンド入力画面）でプロジェクトフォルダに移動し、以下を実行します。
 
-# または Maven + ローカル PostgreSQL
+| OS | ターミナルの開き方 |
+|----|-----------------|
+| Windows 11 | スタートボタンを右クリック →「ターミナル」 |
+| Windows 10 | `Win + R` → `powershell` → Enter |
+| Mac | `Cmd + Space` → `ターミナル` → Enter |
+
+```bash
+# Mac / Linux
 ./mvnw spring-boot:run
+
+# Windows
+mvnw.cmd spring-boot:run
 ```
 
-起動確認：`http://localhost:8080/api/members` にアクセスし、以下のレスポンスが返ることを確認する。
+起動すると以下のメッセージが表示されます：
+```
+Started FamilyScheduleApplication in 3.2 seconds
+```
+
+### 2.2 起動確認
+
+Chromeのアドレスバーに `http://localhost:8080` と入力して Enter。
+利用者選択画面（「あなたは誰？」という画面）が表示されれば起動成功です。
+
+**API応答も確認したい場合:**
+`http://localhost:8080/api/members` を開くと以下のJSON（5名のリスト）が表示されます。
 
 ```json
 [
@@ -94,6 +294,11 @@ docker-compose up -d
   { "id": 5, "name": "長男",     "displayOrder": 5 }
 ]
 ```
+
+### 2.3 Playwright 設定（自動化テスト担当者向け）
+
+> 手動でブラウザ操作するだけの方はこのセクションをスキップしてください。
+> 各テストケースには「UI操作手順」（手動向け）と「Playwright操作例」（自動化向け）の両方を記載しています。
 
 ### 2.2 Playwright 設定
 
@@ -201,6 +406,17 @@ curl -X POST http://localhost:8080/api/schedules \
 
 ## 4. 画面別テストケース
 
+> **LocalStorage 操作の早見表（各テスト開始前に参照してください）**
+>
+> | 操作 | DevTools での手順 |
+> |------|-----------------|
+> | LocalStorage を **クリア** する | F12 → Application → Local Storage → `familySchedule.currentUser` を選択 → Delete キー |
+> | お父さんとして **ログイン済み状態** にする | F12 → Console → `localStorage.setItem('familySchedule.currentUser', JSON.stringify({id:1,name:"お父さん",displayOrder:1}))` → Enter |
+> | お母さんとして **ログイン済み状態** にする | 同上。`{id:2,name:"お母さん",displayOrder:2}` に変更 |
+> | 次女として **ログイン済み状態** にする | 同上。`{id:4,name:"次女",displayOrder:4}` に変更 |
+>
+> 詳しい手順は「第0章 0.4 LocalStorage の操作方法」を参照してください。
+
 ### 4.1 S-01 利用者選択画面
 
 #### ST-01-01 初回起動でS-01（利用者選択画面）が表示されること
@@ -217,11 +433,14 @@ UI操作手順:
 
 | ステップ | 操作 | 期待結果 |
 |---------|------|---------|
-| 1 | ブラウザのLocalStorageから `familySchedule.currentUser` を削除し、`http://localhost:8080` を開く | S-01（利用者選択画面）が表示される |
-| 2 | 画面の表示内容を確認する | `#screen-select-user` が visible であり、`#screen-schedule` は非表示 |
+| 1 | F12 を押して DevTools を開き、「LocalStorage をクリア」する（第0章 0.4 参照） | LocalStorage が空になる |
+| 2 | `http://localhost:8080` を開く（または F5 でリロード） | S-01（利用者選択画面）が表示される |
 | 3 | タイトルと案内テキストを確認する | 「家族スケジュール」「あなたは誰？」が表示されている |
+| 4 | スケジュール画面（S-02）が表示されていないことを確認する | カレンダーグリッドは表示されていない |
 
 `snap("ST-01-01_S01表示確認")`
+
+**スクリーンショット保存:** `docs/evidence/ST-01-01/20260426_ST-01-01_step4_S01表示確認.png`
 
 Playwright操作例:
 ```javascript
@@ -1726,14 +1945,27 @@ test('ST-LS-01: 壊れたlocalStorageでもアプリが動く', async ({ page })
 
 ### 6.1 LocalStorageが残っていてS-01に遷移しない
 
-**症状：** ST-01-01 で S-02 が表示されてしまう。
+**症状：** ST-01-01 で S-02（スケジュール画面）が表示されてしまう。
 
 **原因：** 前のテストで LocalStorage に `familySchedule.currentUser` が残っている。
 
-**対処：**
+**【手動テストの場合】対処手順:**
+
+1. F12 で DevTools を開く
+2. 「Application」タブをクリック
+3. 左メニュー「Local Storage」→「http://localhost:8080」をクリック
+4. 右側のテーブルで `familySchedule.currentUser` の行をクリック
+5. `Delete` キーを押して削除
+6. ページを F5 でリロード → S-01 が表示されるはず
+
+**または Console で実行:**
+```javascript
+localStorage.removeItem('familySchedule.currentUser'); location.reload();
+```
+
+**【自動テストの場合】対処:**
 - 各テスト開始前に `clearCurrentUser(page)` を実行する
 - Playwright の `beforeEach` フックで確実にクリアする
-- ブラウザの「サイトデータをすべてクリア」を手動で実行する
 
 ---
 

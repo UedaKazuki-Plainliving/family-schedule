@@ -5,213 +5,317 @@
 | 文書番号 | IT-SPEC-001 |
 | 作成日 | 2026-04-26 |
 | 対象システム | 家族スケジュール共有システム（Spring Boot 3.3.4） |
-| ステータス | ドラフト |
+| ステータス | v1.1（初心者向け手順ガイド追加） |
+
+> **このドキュメントについて**
+> プログラマー以外の方でも実施できるよう、ツールの使い方から丁寧に説明しています。
+> 初めての方は「**第0章 準備ガイド**」から読んでください。
 
 ---
 
 ## 目次
 
-1. [テスト方針](#1-テスト方針)
-2. [環境セットアップ](#2-環境セットアップ)
-3. [テスト観点一覧](#3-テスト観点一覧)
-4. [メンバー管理テストケース](#4-メンバー管理テストケース)
-5. [スケジュールテストケース](#5-スケジュールテストケース)
-6. [シナリオフローテスト](#6-シナリオフローテスト)
-7. [エラーレスポンスフォーマット確認リスト](#7-エラーレスポンスフォーマット確認リスト)
-8. [既知バグ BUG-VALIDATOR 専用テスト](#8-既知バグ-bug-validator-専用テスト)
+- [第0章 準備ガイド（はじめての方へ）](#第0章-準備ガイドはじめての方へ)
+- [第1章 テスト方針](#第1章-テスト方針)
+- [第2章 環境セットアップ](#第2章-環境セットアップ)
+- [第3章 テスト観点一覧](#第3章-テスト観点一覧)
+- [第4章 メンバー管理テストケース](#第4章-メンバー管理テストケース)
+- [第5章 スケジュールテストケース](#第5章-スケジュールテストケース)
+- [第6章 シナリオフローテスト](#第6章-シナリオフローテスト)
+- [第7章 エラーレスポンスフォーマット確認](#第7章-エラーレスポンスフォーマット確認)
+- [第8章 既知バグ BUG-VALIDATOR 専用テスト](#第8章-既知バグ-bug-validator-専用テスト)
+- [付録 テスト結果記録シート](#付録-テスト結果記録シート)
 
 ---
 
-## 1. テスト方針
+## 第0章 準備ガイド（はじめての方へ）
+
+### 0.1 このテストで行うこと
+
+このテストは「**APIテスト**」です。アプリの裏側（サーバー）に対して、
+ブラウザの代わりに専用ツールからリクエスト（命令）を送り、
+返ってきた結果が正しいかどうかを確認します。
+
+```
+あなたのPC  ──リクエスト送信──▶  サーバー（localhost:8080）
+            ◀──レスポンス返送──  サーバー（データベースと連携）
+```
+
+### 0.2 ツールの準備（AまたはBを選んでください）
+
+#### 選択肢A: Postman（GUI ツール、おすすめ）
+
+画面をクリックして操作できるツールです。プログラミング経験がない方にはこちらを推奨します。
+
+**インストール手順:**
+
+1. ブラウザで `https://www.postman.com/downloads/` を開く
+2. 「Download the App」をクリックしてインストーラーをダウンロード
+3. ダウンロードしたファイルをダブルクリックしてインストール
+4. 起動後、アカウント作成を求められますが「**Skip and go to the app**」をクリックすると登録不要で使えます
+
+**Postman の基本的な使い方（1分で覚える）:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ① メソッド  │  ② URL                            │ ③ Send │
+│  [GET    ▼] │  http://localhost:8080/api/members  │ [Send] │
+├─────────────┴────────────────────────────────────────────────┤
+│  Headers タブ  │  Body タブ  │  ...                          │
+├──────────────────────────────────────────────────────────────┤
+│  ④ レスポンス表示エリア                                       │
+│  Status: 200 OK   Time: 52ms                                │
+│  Body:                                                       │
+│  [{"id":1,"name":"お父さん","displayOrder":1}, ...]          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+| 番号 | 操作内容 |
+|------|---------|
+| ① | リクエストの種類を選ぶ（GET / POST / PUT / DELETE） |
+| ② | URLを入力する |
+| ③ | 「Send」ボタンを押すとリクエストが送信される |
+| ④ | 送信後、ここに結果が表示される（**Status** と **Body** を確認する） |
+
+**ヘッダーの設定方法（POST/PUT のときに必要）:**
+
+1. 「Headers」タブをクリック
+2. 「Key」に `Content-Type` と入力
+3. 「Value」に `application/json` と入力
+
+**ボディの設定方法（POST/PUT のときに必要）:**
+
+1. 「Body」タブをクリック
+2. 「raw」ラジオボタンを選択
+3. 右側のドロップダウンで「JSON」を選択
+4. 下のテキストボックスに JSON を入力（例: `{"name":"テスト"}`）
+
+---
+
+#### 選択肢B: curl（コマンドライン）
+
+キーボードでコマンドを入力して操作するツールです。
+
+**ターミナル（入力画面）の開き方:**
+
+| OS | 開き方 |
+|----|--------|
+| Windows 11 | スタートボタンを右クリック →「ターミナル」または「PowerShell」 |
+| Windows 10 | `Win + R` キー → `powershell` と入力 → Enter |
+| Mac | Spotlight（`Cmd + Space`）→ `ターミナル` と入力 → Enter |
+
+**curl がインストールされているか確認する:**
+
+ターミナルを開いて以下を入力し Enter を押します。
+
+```
+curl --version
+```
+
+`curl 7.xx.x` のように表示されればインストール済みです。
+「コマンドが見つかりません」と表示された場合は Postman（選択肢A）を使ってください。
+
+---
+
+### 0.3 curl コマンドの読み方
+
+このドキュメントには以下のようなコマンドが出てきます。各部分の意味を説明します。
+
+```bash
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/members \
+  -H "Content-Type: application/json" \
+  -d '{"name":"テストメンバー"}'
+```
+
+| 部分 | 意味 |
+|------|------|
+| `curl` | ツール本体の名前 |
+| `-s` | 進捗バーを表示しない（Silentモード） |
+| `-w "\nHTTP_STATUS:%{http_code}"` | 最後にHTTPステータスコードを表示する |
+| `\` | 長いコマンドを次の行に折り返すだけ（意味はない） |
+| `-X POST` | リクエストの種類を指定（POST/GET/PUT/DELETE） |
+| `http://localhost:8080/api/members` | リクエスト先のURL |
+| `-H "Content-Type: application/json"` | 「JSON形式で送ります」というヘッダー情報 |
+| `-d '{"name":"テストメンバー"}'` | 送るデータ（ボディ）の内容 |
+
+> ⚠️ **Windows PowerShell / コマンドプロンプトをお使いの方へ**
+>
+> `'` (シングルクォート) で囲んだ部分が正しく動かないことがあります。
+> その場合は **Git Bash**（Git for Windows に付属）を使うか、
+> またはシングルクォートをダブルクォートに変えてダブルクォート内の `"` を `\"` に置き換えてください。
+>
+> 例（PowerShell用）:
+> ```powershell
+> curl -s -w "`nHTTP_STATUS:%{http_code}" `
+>   -X POST http://localhost:8080/api/members `
+>   -H "Content-Type: application/json" `
+>   -d "{`"name`":`"テストメンバー`"}"
+> ```
+>
+> **Postman を使うとこの問題は起きません。**
+
+---
+
+### 0.4 実行結果の見方
+
+curl コマンドを実行すると、ターミナルに以下のように表示されます。
+
+**成功した場合の例（メンバー取得）:**
+
+```
+[{"id":1,"name":"お父さん","displayOrder":1},{"id":2,"name":"お母さん","displayOrder":2}]
+HTTP_STATUS:200
+```
+
+**失敗した場合の例（入力エラー）:**
+
+```
+{"error":"VALIDATION","message":"入力に誤りがあります","fields":{"name":"名前を入力してください"}}
+HTTP_STATUS:400
+```
+
+**確認するポイントは2つだけです：**
+
+1. **最後の行 `HTTP_STATUS:XXX`** の数字が期待値と一致しているか
+2. **その上のJSON（`{...}` や `[...]`）** の内容が正しいか
+
+---
+
+### 0.5 HTTPステータスコード早見表
+
+| コード | 意味 | いつ返ってくるか |
+|--------|------|----------------|
+| **200** OK | 成功（データあり） | GET・PUT が正常に処理されたとき |
+| **201** Created | 作成成功 | POST で新しいデータが作成されたとき |
+| **204** No Content | 成功（データなし） | DELETE が正常に処理されたとき（ボディは空） |
+| **400** Bad Request | リクエストが不正 | 入力値が間違っているとき（空欄、文字数超過など） |
+| **404** Not Found | 対象が見つからない | 指定したIDのデータが存在しないとき |
+| **409** Conflict | 競合エラー | 予定があるメンバーを削除しようとしたとき |
+
+---
+
+### 0.6 H2コンソール（データベース確認画面）の開き方
+
+H2コンソールはブラウザで開けるDB確認ツールです。テストの確認に使います。
+
+**手順:**
+
+1. サーバーが起動した状態でブラウザを開く
+2. アドレスバーに `http://localhost:8080/h2-console` と入力して Enter
+3. 以下の接続情報を入力する
+
+| 項目 | 入力値 |
+|------|--------|
+| JDBC URL | `jdbc:h2:mem:familydb` |
+| User Name | `sa` |
+| Password | **（空欄のままでOK）** |
+
+4. 「Connect」ボタンをクリック
+5. 画面左側にテーブル一覧、右側にSQL入力欄が表示される
+
+**SQL の実行方法:**
+
+右側の入力欄にSQLを入力し、「Run」ボタン（または `Ctrl+Enter`）を押す。
+結果は下の表に表示される。
+
+**よく使うSQL:**
+
+```sql
+-- メンバー全件を表示する
+SELECT * FROM members ORDER BY display_order;
+
+-- スケジュール全件を表示する（削除済みも含む）
+SELECT * FROM schedules ORDER BY date, member_id, id;
+
+-- 論理削除済みのスケジュールだけを表示する
+SELECT * FROM schedules WHERE deleted_at IS NOT NULL;
+```
+
+---
+
+### 0.7 テスト前のリセット方法
+
+H2はサーバーを再起動するたびに初期データに戻ります。
+テストを最初からやり直したいときは、ターミナルで `Ctrl+C` でサーバーを停止し、
+再度 `./mvnw spring-boot:run` で起動してください。
+
+---
+
+## 第1章 テスト方針
 
 ### 1.1 目的
 
-REST API の各エンドポイントについて、正常系・異常系・境界値を網羅的に検証し、  
-サービス全体が設計仕様どおりに動作することを確認する。  
-あわせて、既知バグ **BUG-VALIDATOR**（`ScheduleValidator.VALID_MEMBER_IDS` のハードコード）を  
+REST API の各エンドポイントについて、正常系・異常系・境界値を網羅的に検証し、
+サービス全体が設計仕様どおりに動作することを確認する。
+あわせて、既知バグ **BUG-VALIDATOR**（`ScheduleValidator.VALID_MEMBER_IDS` のハードコード）を
 テストとして記録し、再現手順を明確に残す。
 
 ### 1.2 スコープ
 
-**対象（In Scope）**
+**対象（テストする範囲）**
 
 - メンバー管理 API（`/api/members`）
 - スケジュール管理 API（`/api/schedules`）
 - 論理削除・復元・物理削除の一連フロー
 - バリデーションエラー（400）・Not Found（404）・競合エラー（409）
 
-**対象外（Out of Scope）
+**対象外（テストしない範囲）**
 
-- 認証・認可
-- フロントエンド UI
-- 負荷テスト・性能テスト
+- ブラウザでの画面操作（→ システムテスト仕様書 09_st_manual_spec.md を参照）
+- 認証・ログイン機能（本システムにはなし）
+- 負荷テスト（→ docs/tests/load/ を参照）
 
 ### 1.3 合格基準
 
 - 全テストケースで期待 HTTP ステータスコードが一致すること
 - JSON レスポンスのフィールド・値が仕様と一致すること
-- BUG-VALIDATOR 関連テスト（IT-S-11、IT-SC-02）は **FAIL（既知バグ）** として記録し、合格対象外とする
+- **BUG-VALIDATOR 関連テスト（IT-S-11、IT-SC-02）は「FAIL（既知バグ）」として記録し、合格対象外とする**
 
-### 1.4 環境前提
+### 1.4 テスト環境
 
 | 項目 | 値 |
 |------|-----|
-| ベース URL | `http://localhost:8080` |
-| DB | H2 インメモリ（`spring.datasource.url=jdbc:h2:mem:familydb`） |
-| 初期データ | members テーブルに ID=1〜5 の 5 名、schedules テーブルは空 |
-| テスト実行ツール | curl（コマンドライン） |
+| サーバーURL | `http://localhost:8080` |
+| データベース | H2 インメモリ（サーバー再起動で初期化） |
+| 初期データ | メンバー5名（お父さん〜長男）、スケジュールは空 |
+| 推奨ツール | Postman または curl |
 
 ---
 
-## 2. 環境セットアップ
+## 第2章 環境セットアップ
 
-### 2.1 サーバー起動
+### 2.1 サーバーの起動方法
+
+ターミナルでプロジェクトフォルダに移動し、以下を実行します。
 
 ```bash
-# プロジェクトルートで実行
 ./mvnw spring-boot:run
-
-# または JAR を直接実行する場合
-java -jar target/family-schedule-*.jar
 ```
 
-起動確認:
+起動に成功すると、ターミナルに以下のようなメッセージが流れます：
 
+```
+Started FamilyScheduleApplication in 3.2 seconds
+```
+
+> Windows の場合は `mvnw.cmd spring-boot:run` を使ってください。
+
+### 2.2 サーバーが起動しているか確認する
+
+ツールで以下を実行し、メンバー5名のリストが返ってくれば起動成功です。
+
+**curl の場合:**
 ```bash
-curl -s http://localhost:8080/api/members | jq .
+curl http://localhost:8080/api/members
 ```
 
-5 名のメンバー一覧が返れば起動成功。
+**Postman の場合:**
+- Method: `GET`
+- URL: `http://localhost:8080/api/members`
+- 「Send」をクリック
 
-### 2.2 初期データ確認
-
-```bash
-# メンバー一覧取得（5名・displayOrder昇順で返ること）
-curl -s http://localhost:8080/api/members
-
-# 期待レスポンス（抜粋）
-# [
-#   {"id":1,"name":"お父さん","displayOrder":1},
-#   {"id":2,"name":"お母さん","displayOrder":2},
-#   {"id":3,"name":"長女","displayOrder":3},
-#   {"id":4,"name":"次女","displayOrder":4},
-#   {"id":5,"name":"長男","displayOrder":5}
-# ]
-```
-
-### 2.3 H2 コンソール
-
-ブラウザで `http://localhost:8080/h2-console` にアクセスする。
-
-| 項目 | 値 |
-|------|-----|
-| JDBC URL | `jdbc:h2:mem:familydb` |
-| ユーザー名 | `sa` |
-| パスワード | （空白） |
-
-よく使う確認 SQL:
-
-```sql
--- メンバー一覧
-SELECT * FROM members ORDER BY display_order;
-
--- スケジュール一覧（論理削除含む）
-SELECT * FROM schedules ORDER BY date, member_id, id;
-
--- 論理削除済みスケジュール
-SELECT * FROM schedules WHERE deleted_at IS NOT NULL;
-```
-
-### 2.4 テスト前のリセット方法
-
-H2 インメモリ DB のため、**サーバーを再起動すると初期状態に戻る**。  
-テストケースによっては前のテストの副作用を避けるためにサーバー再起動を推奨する。  
-各テストケースの「前提条件」欄に再起動が必要な場合は明記する。
-
----
-
-## 3. テスト観点一覧
-
-### 3.1 メンバー管理
-
-| テストケース ID | エンドポイント | 観点 | 期待ステータス | 優先度 |
-|---------------|-------------|------|-------------|------|
-| IT-M-01 | GET /api/members | 一覧取得・displayOrder 昇順 | 200 | H |
-| IT-M-02 | POST /api/members | 正常登録・DB 確認 | 201 | H |
-| IT-M-03 | POST /api/members | 10 名上限超過 | 400 | M |
-| IT-M-04 | POST /api/members | 重複名 | 400 | M |
-| IT-M-05 | POST /api/members | 名前空文字 | 400 | H |
-| IT-M-06 | PUT /api/members/{id} | 正常更新 | 200 | H |
-| IT-M-07 | PUT /api/members/{id} | 存在しない ID | 404 | H |
-| IT-M-08 | DELETE /api/members/{id} | 予定なし・正常削除 | 204 | H |
-| IT-M-09 | DELETE /api/members/{id} | 予定あり・制約違反 | 409 | H |
-
-### 3.2 スケジュール管理
-
-| テストケース ID | エンドポイント | 観点 | 期待ステータス | 優先度 |
-|---------------|-------------|------|-------------|------|
-| IT-S-01 | GET /api/schedules | 0 件 | 200 | H |
-| IT-S-02 | GET /api/schedules | 複数件・ソート確認 | 200 | H |
-| IT-S-03 | GET /api/schedules | from > to | 400 | M |
-| IT-S-04 | GET /api/schedules | from パラメータ欠落 | 400 | M |
-| IT-S-05 | GET /api/schedules | 不正日付形式 | 400 | M |
-| IT-S-06 | GET /api/schedules | 論理削除済みは除外 | 200 | H |
-| IT-S-07 | POST /api/schedules | 正常登録・Location ヘッダー確認 | 201 | H |
-| IT-S-08 | POST /api/schedules | content ちょうど 100 コードポイント | 201 | H |
-| IT-S-09 | POST /api/schedules | content 101 コードポイント | 400 | H |
-| IT-S-10 | POST /api/schedules | 絵文字 100 コードポイント | 201 | M |
-| IT-S-11 | POST /api/schedules | memberId=6（BUG-VALIDATOR） | 400 | H |
-| IT-S-12 | POST /api/schedules | memberId=5（上限は問題なし） | 201 | M |
-| IT-S-13 | PUT /api/schedules/{id} | 正常更新 | 200 | H |
-| IT-S-14 | PUT /api/schedules/{id} | 存在しない ID | 404 | H |
-| IT-S-15 | PUT /api/schedules/{id} | 論理削除済み ID | 404 | H |
-| IT-S-16 | DELETE /api/schedules/{id} | 論理削除（deleted_at 設定） | 204 | H |
-| IT-S-17 | DELETE /api/schedules/{id} | 2 回目の論理削除 | 404 | H |
-| IT-S-18 | POST /api/schedules/{id}/restore | 論理削除からの復元 | 200 | H |
-| IT-S-19 | POST /api/schedules/{id}/restore | 未削除 ID に restore | 404 | H |
-| IT-S-20 | POST /api/schedules/{id}/purge | 物理削除 | 204 | H |
-| IT-S-21 | POST /api/schedules/{id}/purge | 未削除 ID に purge | 404 | H |
-
-### 3.3 シナリオフロー
-
-| テストケース ID | 観点 | 優先度 |
-|---------------|------|------|
-| IT-SC-01 | 登録→一覧→削除→復元→purge の一気通貫フロー | H |
-| IT-SC-02 | メンバー追加（ID=6）→予定登録 → BUG-VALIDATOR 再現 | H |
-| IT-SC-03 | 閏日 2028-02-29 登録 → 201 | M |
-| IT-SC-04 | 存在しない閏日 2027-02-29 登録 → 400 | M |
-
----
-
-## 4. メンバー管理テストケース
-
-### IT-M-01 メンバー一覧取得: 200 + displayOrder 昇順
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-M-01 |
-| 前提条件 | 初期データ（5 名）が存在する |
-| 優先度 | H |
-
-**手順:**
-
-| ステップ | 操作 | 期待結果 |
-|---------|------|---------|
-| 1 | GET /api/members | 200 + JSON 配列（5 要素、id=1〜5 の順） |
-
-**curl コマンド:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  http://localhost:8080/api/members
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `200 OK`
-- `Content-Type: application/json`
-- ボディ: `id` が 1, 2, 3, 4, 5 の順（`displayOrder` 昇順）
-
+**期待される表示:**
 ```json
 [
   {"id":1,"name":"お父さん","displayOrder":1},
@@ -222,24 +326,133 @@ curl -s -w "\nHTTP_STATUS:%{http_code}" \
 ]
 ```
 
+この表示が出ない場合はサーバーが起動していません。起動をやり直してください。
+
 ---
 
-### IT-M-02 メンバー登録: 正常 → 201 + DB 確認
+## 第3章 テスト観点一覧
+
+### 3.1 メンバー管理
+
+| ID | エンドポイント | 確認内容 | 期待ステータス | 優先度 |
+|----|-------------|---------|-------------|------|
+| IT-M-01 | GET /api/members | 一覧取得・順番の確認 | 200 | H |
+| IT-M-02 | POST /api/members | 正常に追加できる | 201 | H |
+| IT-M-03 | POST /api/members | 10名を超えると追加できない | 400 | M |
+| IT-M-04 | POST /api/members | 同じ名前は追加できない | 400 | M |
+| IT-M-05 | POST /api/members | 名前が空では追加できない | 400 | H |
+| IT-M-06 | PUT /api/members/{id} | 名前を変更できる | 200 | H |
+| IT-M-07 | PUT /api/members/{id} | 存在しないIDは変更できない | 404 | H |
+| IT-M-08 | DELETE /api/members/{id} | 予定のないメンバーは削除できる | 204 | H |
+| IT-M-09 | DELETE /api/members/{id} | 予定があるメンバーは削除できない | 409 | H |
+
+### 3.2 スケジュール管理
+
+| ID | エンドポイント | 確認内容 | 期待ステータス | 優先度 |
+|----|-------------|---------|-------------|------|
+| IT-S-01 | GET /api/schedules | 0件のとき空配列が返る | 200 | H |
+| IT-S-02 | GET /api/schedules | 複数件・日付順で返る | 200 | H |
+| IT-S-03 | GET /api/schedules | 開始日 > 終了日は弾かれる | 400 | M |
+| IT-S-04 | GET /api/schedules | fromパラメータなしは弾かれる | 400 | M |
+| IT-S-05 | GET /api/schedules | 不正な日付形式は弾かれる | 400 | M |
+| IT-S-06 | GET /api/schedules | 論理削除済みは一覧に出ない | 200 | H |
+| IT-S-07 | POST /api/schedules | 正常に登録できる | 201 | H |
+| IT-S-08 | POST /api/schedules | 内容100文字ちょうどは登録できる | 201 | H |
+| IT-S-09 | POST /api/schedules | 内容101文字は弾かれる | 400 | H |
+| IT-S-10 | POST /api/schedules | 絵文字100コードポイントは登録できる | 201 | M |
+| IT-S-11 | POST /api/schedules | memberId=6は400になる（バグ） | 400 | H |
+| IT-S-12 | POST /api/schedules | memberId=5は登録できる | 201 | M |
+| IT-S-13 | PUT /api/schedules/{id} | 予定内容を変更できる | 200 | H |
+| IT-S-14 | PUT /api/schedules/{id} | 存在しないIDは変更できない | 404 | H |
+| IT-S-15 | PUT /api/schedules/{id} | 削除済みのIDは変更できない | 404 | H |
+| IT-S-16 | DELETE /api/schedules/{id} | 削除するとリストから消える（論理削除） | 204 | H |
+| IT-S-17 | DELETE /api/schedules/{id} | 同じIDを2回削除すると404 | 404 | H |
+| IT-S-18 | POST /api/schedules/{id}/restore | 削除を取り消せる | 200 | H |
+| IT-S-19 | POST /api/schedules/{id}/restore | 削除していないIDはrestoreできない | 404 | H |
+| IT-S-20 | POST /api/schedules/{id}/purge | 完全に削除できる | 204 | H |
+| IT-S-21 | POST /api/schedules/{id}/purge | 削除していないIDはpurgeできない | 404 | H |
+
+### 3.3 シナリオフロー
+
+| ID | 確認内容 | 優先度 |
+|----|---------|------|
+| IT-SC-01 | 登録→確認→削除→復元→完全削除の一連操作 | H |
+| IT-SC-02 | 新メンバー追加後に予定登録が失敗する（バグ確認） | H |
+| IT-SC-03 | 閏日（2028-02-29）に予定登録できる | M |
+| IT-SC-04 | 存在しない閏日（2027-02-29）は弾かれる | M |
+
+---
+
+## 第4章 メンバー管理テストケース
+
+> **テストを始める前に**: サーバーが起動していることを確認してください（第2章 2.2参照）。
+
+---
+
+### IT-M-01 メンバー一覧を取得できること
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-M-02 |
-| 前提条件 | 初期データ（5 名）が存在する |
+| テストケースID | IT-M-01 |
+| 前提条件 | サーバー起動済み・初期データ（5名）が入っている |
 | 優先度 | H |
 
-**手順:**
+**操作手順:**
 
-| ステップ | 操作 | 期待結果 |
-|---------|------|---------|
-| 1 | POST /api/members `{"name":"おじいちゃん"}` | 201 + `{"id":6,"name":"おじいちゃん","displayOrder":6}` |
-| 2 | H2 コンソールで `SELECT * FROM members WHERE id=6` | 1 行ヒット |
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | 下記のリクエストを送信する | ステータスが `200` であること |
+| 2 | 返ってきたデータを見る | 5名分のデータが `displayOrder` の順（1→2→3→4→5）で並んでいること |
 
-**curl コマンド:**
+**【curl の場合】コマンドをコピーして実行してください:**
+
+```bash
+curl -s -w "\nHTTP_STATUS:%{http_code}" http://localhost:8080/api/members
+```
+
+**実行すると以下のように表示されます（これが合格の見本です）:**
+
+```
+[{"id":1,"name":"お父さん","displayOrder":1},{"id":2,"name":"お母さん","displayOrder":2},{"id":3,"name":"長女","displayOrder":3},{"id":4,"name":"次女","displayOrder":4},{"id":5,"name":"長男","displayOrder":5}]
+HTTP_STATUS:200
+```
+
+**【Postman の場合】**
+
+| 項目 | 入力値 |
+|------|--------|
+| Method | `GET` |
+| URL | `http://localhost:8080/api/members` |
+
+「Send」を押した後、画面下部の「**Status: 200 OK**」と `Body` の内容を確認する。
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `HTTP_STATUS:200` と表示される | それ以外の数字が表示される |
+| データの件数 | JSON配列に5件ある（`[{...},{...},{...},{...},{...}]`） | 件数が違う |
+| 並び順 | id が 1, 2, 3, 4, 5 の順 | バラバラな順番 |
+
+---
+
+### IT-M-02 メンバーを新しく追加できること
+
+| 項目 | 内容 |
+|------|------|
+| テストケースID | IT-M-02 |
+| 前提条件 | サーバー起動済み・初期データ（5名） |
+| 優先度 | H |
+
+**操作手順:**
+
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | 下記のリクエストを送信する | ステータスが `201` であること |
+| 2 | 返ってきたデータを見る | `id:6`・`name:"おじいちゃん"` が含まれていること |
+| 3 | （オプション）H2コンソールで確認する | `SELECT * FROM members WHERE name='おじいちゃん'` で1行出ること |
+
+**【curl の場合】**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
@@ -248,47 +461,63 @@ curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -d '{"name":"おじいちゃん"}'
 ```
 
-**期待レスポンス:**
+**合格時の表示例:**
 
-- HTTP ステータス: `201 Created`
-
-```json
+```
 {"id":6,"name":"おじいちゃん","displayOrder":6}
+HTTP_STATUS:201
 ```
 
-**DB 確認 SQL（H2 コンソール）:**
+**【Postman の場合】**
 
-```sql
-SELECT * FROM members WHERE name = 'おじいちゃん';
-```
+| 項目 | 入力値 |
+|------|--------|
+| Method | `POST` |
+| URL | `http://localhost:8080/api/members` |
+| Headers | `Content-Type: application/json` |
+| Body（raw / JSON） | `{"name":"おじいちゃん"}` |
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `201` | それ以外 |
+| レスポンスに `name` フィールド | `"name":"おじいちゃん"` が含まれる | 含まれない |
+| レスポンスに `id` フィールド | `"id":6` が含まれる（初回追加の場合） | 含まれない |
 
 ---
 
-### IT-M-03 メンバー登録: 10 名上限超過 → 400
+### IT-M-03 10名を超えて追加できないこと
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-M-03 |
-| 前提条件 | メンバーが 10 名登録済みの状態（初期 5 名 + 追加 5 名） |
+| テストケースID | IT-M-03 |
+| 前提条件 | メンバーが **10名** 登録済みの状態（初期5名＋追加5名） |
 | 優先度 | M |
 
-**前提セットアップ（5 名追加）:**
+**前準備: 5名を追加して10名にする（curl の場合）**
+
+以下のコマンドを1行ずつ実行してください:
 
 ```bash
-for name in "おじいちゃん" "おばあちゃん" "叔父さん" "叔母さん" "いとこ"; do
-  curl -s -X POST http://localhost:8080/api/members \
-    -H "Content-Type: application/json" \
-    -d "{\"name\":\"${name}\"}"
-done
+curl -s -X POST http://localhost:8080/api/members -H "Content-Type: application/json" -d '{"name":"おじいちゃん"}'
+curl -s -X POST http://localhost:8080/api/members -H "Content-Type: application/json" -d '{"name":"おばあちゃん"}'
+curl -s -X POST http://localhost:8080/api/members -H "Content-Type: application/json" -d '{"name":"叔父さん"}'
+curl -s -X POST http://localhost:8080/api/members -H "Content-Type: application/json" -d '{"name":"叔母さん"}'
+curl -s -X POST http://localhost:8080/api/members -H "Content-Type: application/json" -d '{"name":"いとこ"}'
 ```
 
-**手順:**
+各コマンドを実行するたびに `{"id":6,...}`, `{"id":7,...}` ... `{"id":10,...}` と返ってくれば準備完了です。
 
-| ステップ | 操作 | 期待結果 |
-|---------|------|---------|
-| 1 | POST /api/members（11 人目） | 400 + `error: "VALIDATION"` |
+**操作手順:**
 
-**curl コマンド:**
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | 前準備を完了させる | 10名いる状態にする |
+| 2 | さらに1名追加しようとする | ステータスが `400` になること |
+| 3 | エラーメッセージを確認する | 「最大10名まで」というメッセージが含まれること |
+
+**【curl の場合】**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
@@ -297,34 +526,48 @@ curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -d '{"name":"11人目"}'
 ```
 
-**期待レスポンス:**
+**合格時の表示例:**
 
-- HTTP ステータス: `400 Bad Request`
-
-```json
-{
-  "error": "VALIDATION",
-  "message": "入力に誤りがあります"
-}
 ```
+{"error":"VALIDATION","message":"メンバーは最大10名までです","fields":{"name":"メンバーは最大10名までです"}}
+HTTP_STATUS:400
+```
+
+**【Postman の場合】**
+
+| 項目 | 入力値 |
+|------|--------|
+| Method | `POST` |
+| URL | `http://localhost:8080/api/members` |
+| Headers | `Content-Type: application/json` |
+| Body（raw / JSON） | `{"name":"11人目"}` |
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `400` | `201`（追加されてしまった） |
+| エラーメッセージ | `"最大10名"` という文言が含まれる | 含まれない |
+
+> ⚠️ このテストが終わったら、サーバーを再起動して初期状態（5名）に戻してください。
 
 ---
 
-### IT-M-04 メンバー登録: 重複名 → 400 + fields.name
+### IT-M-04 同じ名前のメンバーは追加できないこと
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-M-04 |
-| 前提条件 | 初期データ（5 名）が存在する |
+| テストケースID | IT-M-04 |
+| 前提条件 | 初期データ（5名）が存在する |
 | 優先度 | M |
 
-**手順:**
+**操作手順:**
 
-| ステップ | 操作 | 期待結果 |
-|---------|------|---------|
-| 1 | POST /api/members `{"name":"お父さん"}` | 400 + `fields.name` にエラーメッセージ |
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | 「お父さん」という名前で追加を試みる | ステータスが `400` になること |
 
-**curl コマンド:**
+**【curl の場合】**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
@@ -333,37 +576,37 @@ curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -d '{"name":"お父さん"}'
 ```
 
-**期待レスポンス:**
+**合格時の表示例:**
 
-- HTTP ステータス: `400 Bad Request`
-
-```json
-{
-  "error": "VALIDATION",
-  "message": "入力に誤りがあります",
-  "fields": {
-    "name": "既に使用されている名前です"
-  }
-}
 ```
+{"error":"VALIDATION","message":"入力に誤りがあります","fields":{"name":"同じ名前のメンバーが既に存在します"}}
+HTTP_STATUS:400
+```
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `400` | `201`（追加されてしまった） |
 
 ---
 
-### IT-M-05 メンバー登録: 名前空文字 → 400
+### IT-M-05 名前が空では追加できないこと
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-M-05 |
-| 前提条件 | 初期データ（5 名）が存在する |
+| テストケースID | IT-M-05 |
+| 前提条件 | 初期データ（5名）が存在する |
 | 優先度 | H |
 
-**手順:**
+**操作手順:**
 
-| ステップ | 操作 | 期待結果 |
-|---------|------|---------|
-| 1 | POST /api/members `{"name":""}` | 400 + `fields.name` にエラーメッセージ |
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | 名前を空文字で送信する | `400` になること |
+| 2 | 名前を21文字で送信する | `400` になること（20文字が上限） |
 
-**curl コマンド（空文字）:**
+**【curl の場合】ケース1: 空文字**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
@@ -372,30 +615,7 @@ curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -d '{"name":""}'
 ```
 
-**curl コマンド（null）:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/members \
-  -H "Content-Type: application/json" \
-  -d '{"name":null}'
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `400 Bad Request`
-
-```json
-{
-  "error": "VALIDATION",
-  "message": "入力に誤りがあります",
-  "fields": {
-    "name": "名前は必須です"
-  }
-}
-```
-
-**追加確認（名前 21 文字以上）:**
+**【curl の場合】ケース2: 21文字（あ〜な）**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
@@ -404,26 +624,38 @@ curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -d '{"name":"あいうえおかきくけこさしすせそたちつてとな"}'
 ```
 
-期待: `400 Bad Request`（`name.length() > 20` のため）
+**合格時の表示例（どちらも）:**
+
+```
+{"error":"VALIDATION","message":"入力に誤りがあります",...}
+HTTP_STATUS:400
+```
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| 空文字のステータス | `400` | それ以外 |
+| 21文字のステータス | `400` | それ以外（特に `201` は要注意） |
 
 ---
 
-### IT-M-06 メンバー更新: 正常 → 200
+### IT-M-06 メンバーの名前を変更できること
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-M-06 |
-| 前提条件 | 初期データ（5 名）が存在する |
+| テストケースID | IT-M-06 |
+| 前提条件 | 初期データ（5名）が存在する |
 | 優先度 | H |
 
-**手順:**
+**操作手順:**
 
-| ステップ | 操作 | 期待結果 |
-|---------|------|---------|
-| 1 | PUT /api/members/1 `{"name":"パパ"}` | 200 + `{"id":1,"name":"パパ","displayOrder":1}` |
-| 2 | GET /api/members | id=1 の name が「パパ」に変わっている |
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | ID=1（お父さん）の名前を「パパ」に変更する | `200` が返ること |
+| 2 | メンバー一覧を取得する（IT-M-01と同様） | ID=1 の名前が「パパ」になっていること |
 
-**curl コマンド:**
+**【curl の場合】ステップ1:**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
@@ -432,25 +664,42 @@ curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -d '{"name":"パパ"}'
 ```
 
-**期待レスポンス:**
+**合格時の表示例:**
 
-- HTTP ステータス: `200 OK`
-
-```json
-{"id":1,"name":"パパ","displayOrder":1}
 ```
+{"id":1,"name":"パパ","displayOrder":1}
+HTTP_STATUS:200
+```
+
+**【Postman の場合】**
+
+| 項目 | 入力値 |
+|------|--------|
+| Method | `PUT` |
+| URL | `http://localhost:8080/api/members/1` |
+| Headers | `Content-Type: application/json` |
+| Body（raw / JSON） | `{"name":"パパ"}` |
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `200` | それ以外 |
+| 変更後の名前 | `"name":"パパ"` | 変わっていない |
+
+> このテスト後は名前が「パパ」に変わります。次のテストで影響する場合はサーバーを再起動してください。
 
 ---
 
-### IT-M-07 メンバー更新: 存在しない ID → 404
+### IT-M-07 存在しないIDのメンバーは変更できないこと
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-M-07 |
-| 前提条件 | ID=999 のメンバーが存在しない |
+| テストケースID | IT-M-07 |
+| 前提条件 | ID=999 のメンバーが存在しない（通常の初期状態でOK） |
 | 優先度 | H |
 
-**curl コマンド:**
+**【curl の場合】**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
@@ -459,1175 +708,788 @@ curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -d '{"name":"存在しない"}'
 ```
 
-**期待レスポンス:**
+**合格時の表示例:**
 
-- HTTP ステータス: `404 Not Found`
-
-```json
-{
-  "error": "NOT_FOUND",
-  "message": "指定されたメンバーが見つかりません"
-}
 ```
+{"error":"NOT_FOUND","message":"メンバーが見つかりません: 999"}
+HTTP_STATUS:404
+```
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `404` | `200`（変更できてしまった） |
 
 ---
 
-### IT-M-08 メンバー削除: 予定なし → 204
+### IT-M-08 予定がないメンバーは削除できること
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-M-08 |
-| 前提条件 | ID=5（長男）に予定が紐付いていない |
+| テストケースID | IT-M-08 |
+| 前提条件 | 初期データ（5名）。ID=5（長男）に予定が紐付いていない状態 |
 | 優先度 | H |
 
-**手順:**
+> ⚠️ 削除は取り消せません。テスト後はサーバーを再起動して初期状態に戻してください。
 
-| ステップ | 操作 | 期待結果 |
-|---------|------|---------|
-| 1 | DELETE /api/members/5 | 204 No Content（ボディなし） |
-| 2 | GET /api/members | 5 名から 4 名に減っている |
+**操作手順:**
 
-**curl コマンド:**
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | ID=5（長男）を削除する | `204` が返ること（ボディは何も表示されない） |
+| 2 | メンバー一覧を取得する | 4名になっていること（長男がいないこと） |
+
+**【curl の場合】ステップ1:**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -X DELETE http://localhost:8080/api/members/5
 ```
 
-**期待レスポンス:**
+**合格時の表示例（ボディなし）:**
 
-- HTTP ステータス: `204 No Content`
-- ボディ: なし
+```
 
-**DB 確認 SQL:**
+HTTP_STATUS:204
+```
+
+> ボディが空（上の行が空白）なのが正常です。`204 No Content` はレスポンスにデータが含まれないことを意味します。
+
+**【curl の場合】ステップ2（削除後の確認）:**
+
+```bash
+curl -s http://localhost:8080/api/members
+```
+
+返ってきたデータに `"id":5` がなければ合格です。
+
+**【H2コンソールで確認する場合】**
 
 ```sql
 SELECT * FROM members WHERE id = 5;
--- 0 行であること
 ```
+
+0行（結果なし）であれば合格です。
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| 削除時のステータスコード | `204` | それ以外 |
+| 一覧確認 | 長男が消えている（4名） | 長男がまだいる（5名） |
 
 ---
 
-### IT-M-09 メンバー削除: 予定あり → 409（ON DELETE RESTRICT）
+### IT-M-09 予定があるメンバーは削除できないこと
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-M-09 |
-| 前提条件 | ID=1（お父さん）に予定が 1 件以上紐付いている |
+| テストケースID | IT-M-09 |
+| 前提条件 | ID=1（お父さん）に予定を事前に1件登録しておく |
 | 優先度 | H |
 
-**前提セットアップ（予定を登録）:**
+**前準備: お父さんに予定を1件登録する**
 
 ```bash
-curl -s -X POST http://localhost:8080/api/schedules \
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules \
   -H "Content-Type: application/json" \
   -d '{"memberId":1,"date":"2026-05-01","content":"出張"}'
 ```
 
-**手順:**
+`HTTP_STATUS:201` が返れば準備完了です。
 
-| ステップ | 操作 | 期待結果 |
-|---------|------|---------|
-| 1 | 上記で予定を登録 | 201 |
-| 2 | DELETE /api/members/1 | 409（ON DELETE RESTRICT による DataIntegrityViolationException） |
+**操作手順:**
 
-**curl コマンド:**
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | 前準備でお父さんに予定を登録する | `201` で成功すること |
+| 2 | ID=1（お父さん）を削除しようとする | `409` が返ること（削除できない） |
+| 3 | メンバー一覧を確認する | お父さんがまだ存在していること |
+
+**【curl の場合】ステップ2:**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -X DELETE http://localhost:8080/api/members/1
 ```
 
-**期待レスポンス:**
+**合格時の表示例:**
 
-- HTTP ステータス: `409 Conflict`
-
-```json
-{
-  "error": "CONFLICT",
-  "message": "このメンバーには予定が紐付いているため削除できません"
-}
 ```
+{"error":"CONFLICT","message":"このメンバーには予定が存在するため削除できません"}
+HTTP_STATUS:409
+```
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `409` | `204`（消えてしまった） |
+| お父さんの存在確認 | 一覧にまだいる | 消えている |
 
 ---
 
-## 5. スケジュールテストケース
+## 第5章 スケジュールテストケース
 
-### IT-S-01 スケジュール一覧: 0 件 → 200 + []
+> **文中の `{id}` について**: `{id}` はスケジュールの番号です。登録時に返ってくる `"id"` の値を実際の数字に置き換えてください。
+> 例: `"id":12` と返ってきた場合 → `/api/schedules/12` とする
+
+---
+
+### IT-S-01 予定が0件のとき空の一覧が返ること
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-S-01 |
-| 前提条件 | schedules テーブルが空（サーバー起動直後） |
+| テストケースID | IT-S-01 |
+| 前提条件 | スケジュールが1件もない（サーバー起動直後） |
 | 優先度 | H |
 
-**curl コマンド:**
+**【curl の場合】**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  "http://localhost:8080/api/schedules?from=2026-01-01&to=2026-12-31"
+  "http://localhost:8080/api/schedules?from=2026-04-01&to=2026-04-30"
 ```
 
-**期待レスポンス:**
+> URL に `?` や `&` が含まれる場合、**URL全体をダブルクォート `"` で囲む**必要があります。
 
-- HTTP ステータス: `200 OK`
-- ボディ: `[]`
+**合格時の表示例:**
+
+```
+[]
+HTTP_STATUS:200
+```
+
+> `[]` は「空の配列（データが0件）」を表します。
+
+**【Postman の場合】**
+
+| 項目 | 入力値 |
+|------|--------|
+| Method | `GET` |
+| URL | `http://localhost:8080/api/schedules?from=2026-04-01&to=2026-04-30` |
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `200` | それ以外 |
+| ボディ | `[]`（空の配列） | 何かデータが入っている |
 
 ---
 
-### IT-S-02 スケジュール一覧: 複数件 → date 昇順→memberId 昇順→id 昇順
+### IT-S-07 予定を正常に登録できること
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-S-02 |
-| 前提条件 | 以下の 3 件が登録済み |
+| テストケースID | IT-S-07 |
+| 前提条件 | 初期データ（5名）が存在する |
 | 優先度 | H |
 
-**前提セットアップ:**
+**操作手順:**
+
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | 下記コマンドで予定を登録する | `201` が返ること |
+| 2 | 返ってきたデータを確認する | `id`・`memberId`・`date`・`content` フィールドがあること |
+| 3 | 一覧取得で確認する | 登録した予定が一覧に含まれること |
+
+**【curl の場合】**
 
 ```bash
-# 同じ日付・異なるメンバー
-curl -s -X POST http://localhost:8080/api/schedules \
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules \
   -H "Content-Type: application/json" \
-  -d '{"memberId":3,"date":"2026-05-01","content":"学校"}'
-
-curl -s -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"出張"}'
-
-# 異なる日付
-curl -s -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":2,"date":"2026-04-30","content":"買い物"}'
+  -d '{"memberId":1,"date":"2026-05-01","content":"ミーティング"}'
 ```
 
-**curl コマンド:**
+**合格時の表示例:**
 
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  "http://localhost:8080/api/schedules?from=2026-04-01&to=2026-05-31"
+```
+{"id":1,"memberId":1,"memberName":"お父さん","date":"2026-05-01","content":"ミーティング","deletedAt":null}
+HTTP_STATUS:201
 ```
 
-**期待レスポンス:**
+> 返ってきた `"id"` の値を控えておいてください。後続のテスト（IT-S-13〜IT-S-21）で使います。
 
-- HTTP ステータス: `200 OK`
-- ソート順: `date` 昇順 → `memberId` 昇順 → `id` 昇順
+**【Postman の場合】**
 
-```json
-[
-  {"id":3,"memberId":2,"date":"2026-04-30","content":"買い物"},
-  {"id":2,"memberId":1,"date":"2026-05-01","content":"出張"},
-  {"id":1,"memberId":3,"date":"2026-05-01","content":"学校"}
-]
-```
+| 項目 | 入力値 |
+|------|--------|
+| Method | `POST` |
+| URL | `http://localhost:8080/api/schedules` |
+| Headers | `Content-Type: application/json` |
+| Body（raw / JSON） | `{"memberId":1,"date":"2026-05-01","content":"ミーティング"}` |
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `201` | それ以外 |
+| `id` フィールド | 数字が入っている | ない |
+| `content` フィールド | `"ミーティング"` | 違う値 |
 
 ---
 
-### IT-S-03 スケジュール一覧: from > to → 400
+### IT-S-08・IT-S-09 内容の文字数制限（100文字が上限）
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-S-03 |
-| 前提条件 | なし |
-| 優先度 | M |
-
-**curl コマンド:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  "http://localhost:8080/api/schedules?from=2026-12-31&to=2026-01-01"
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `400 Bad Request`
-
-```json
-{
-  "error": "VALIDATION",
-  "message": "入力に誤りがあります"
-}
-```
-
----
-
-### IT-S-04 スケジュール一覧: from パラメータ欠落 → 400
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-04 |
-| 前提条件 | なし |
-| 優先度 | M |
-
-**curl コマンド（from のみ欠落）:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  "http://localhost:8080/api/schedules?to=2026-12-31"
-```
-
-**curl コマンド（両方欠落）:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  "http://localhost:8080/api/schedules"
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `400 Bad Request`
-
----
-
-### IT-S-05 スケジュール一覧: 不正日付形式 → 400
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-05 |
-| 前提条件 | なし |
-| 優先度 | M |
-
-**curl コマンド:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  "http://localhost:8080/api/schedules?from=2026/04/01&to=2026-12-31"
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `400 Bad Request`
-
----
-
-### IT-S-06 スケジュール一覧: 論理削除済みは除外される
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-06 |
-| 前提条件 | なし |
+| テストケースID | IT-S-08 / IT-S-09 |
+| 前提条件 | 初期データ（5名）が存在する |
 | 優先度 | H |
 
-**手順:**
-
-| ステップ | 操作 | 期待結果 |
-|---------|------|---------|
-| 1 | POST /api/schedules（1 件登録） | 201 + id=X |
-| 2 | DELETE /api/schedules/X | 204（論理削除） |
-| 3 | GET /api/schedules（同じ期間） | 200 + []（削除済みは含まない） |
-
-**curl コマンド:**
+**ケース1: ちょうど100文字 → 登録できること（IT-S-08）**
 
 ```bash
-# ステップ1: 登録
-curl -s -X POST http://localhost:8080/api/schedules \
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules \
   -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"テスト予定"}'
+  -d '{"memberId":1,"date":"2026-05-01","content":"あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんあいうえおかきくけこさしすせそたちつてとなにぬねの"}'
+```
 
-# ステップ2: 論理削除（ID は上で返ってきた値に置き換える）
+> 上記の `content` の値はちょうど100文字です。数えて確認したい場合は文字数カウントサービスを使ってください。
+
+**期待結果:** `HTTP_STATUS:201`
+
+**ケース2: 101文字 → 登録できないこと（IT-S-09）**
+
+```bash
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules \
+  -H "Content-Type: application/json" \
+  -d '{"memberId":1,"date":"2026-05-01","content":"あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんあいうえおかきくけこさしすせそたちつてとなにぬねのは"}'
+```
+
+**合格時の表示例（IT-S-09）:**
+
+```
+{"error":"VALIDATION","message":"入力に誤りがあります","fields":{"content":"内容は100文字以内で入力してください"}}
+HTTP_STATUS:400
+```
+
+**合否判定:**
+
+| テスト | 確認項目 | 合格 | 不合格 |
+|-------|---------|------|--------|
+| IT-S-08（100文字） | ステータスコード | `201` | `400`（弾かれた） |
+| IT-S-09（101文字） | ステータスコード | `400` | `201`（登録できてしまった） |
+
+---
+
+### IT-S-16 予定を削除すると一覧から消えること（論理削除）
+
+| 項目 | 内容 |
+|------|------|
+| テストケースID | IT-S-16 |
+| 前提条件 | 予定が1件以上ある（IT-S-07で登録したものでOK） |
+| 優先度 | H |
+
+> **「論理削除」とは**: データを実際には消さず「削除済み」フラグを立てる仕組みです。
+> 後で「元に戻す」（IT-S-18 restore）が可能です。
+> 「物理削除」（完全削除）は IT-S-20 purge で行います。
+
+**操作手順:**
+
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | 予定を1件登録する（IT-S-07参照） | `201` で登録成功。返ってきた `id` を控える |
+| 2 | 控えた `id` を使って削除リクエストを送る | `204` が返ること |
+| 3 | 一覧取得で確認する | 削除した予定が一覧に出ていないこと |
+| 4 | （オプション）H2コンソールで確認する | `deleted_at` 列に日時が入っていること（完全には消えていない） |
+
+**【curl の場合】ステップ2（`id` が 1 の場合の例）:**
+
+```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -X DELETE http://localhost:8080/api/schedules/1
-
-# ステップ3: 一覧取得
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  "http://localhost:8080/api/schedules?from=2026-05-01&to=2026-05-01"
 ```
 
-**期待レスポンス（ステップ 3）:**
+> **`1` の部分**を、ステップ1で控えた実際の `id` の数字に変えてください。
 
-- HTTP ステータス: `200 OK`
-- ボディ: `[]`
+**合格時の表示例（ボディなし）:**
 
-**DB 確認 SQL:**
+```
+
+HTTP_STATUS:204
+```
+
+**【H2コンソールで論理削除を確認する場合】**
 
 ```sql
--- deleted_at が設定されていること
-SELECT id, content, deleted_at FROM schedules WHERE id = 1;
+SELECT id, content, deleted_at FROM schedules ORDER BY id DESC LIMIT 1;
 ```
+
+`deleted_at` に日時（例: `2026-05-01 10:30:00`）が入っていれば論理削除が記録されています。
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| 削除時のステータス | `204` | それ以外 |
+| 一覧取得での確認 | 削除した予定が出てこない | まだ出てくる |
 
 ---
 
-### IT-S-07 スケジュール登録: 正常 → 201 + Location ヘッダー
+### IT-S-18 削除した予定を元に戻せること（restore）
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-S-07 |
-| 前提条件 | 初期データが存在する |
+| テストケースID | IT-S-18 |
+| 前提条件 | IT-S-16 で削除した予定がある（`id` を控えておくこと） |
 | 優先度 | H |
 
-**curl コマンド（ヘッダーも表示）:**
-
-```bash
-curl -s -D - -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"出張"}'
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `201 Created`
-- `Location` ヘッダー: `/api/schedules/{新規ID}` が含まれること
-
-```json
-{"id":1,"memberId":1,"date":"2026-05-01","content":"出張","deletedAt":null}
-```
-
----
-
-### IT-S-08 スケジュール登録: content ちょうど 100 コードポイント → 201
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-08 |
-| 前提条件 | 初期データが存在する |
-| 優先度 | H |
-
-**curl コマンド（「あ」×100 文字 = 100 コードポイント）:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"}'
-```
-
-> 注意: 上記の「あ」の文字数が 100 個であることを確認してから実行すること。
-
-**期待レスポンス:**
-
-- HTTP ステータス: `201 Created`
-
----
-
-### IT-S-09 スケジュール登録: content 101 コードポイント → 400
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-09 |
-| 前提条件 | 初期データが存在する |
-| 優先度 | H |
-
-**curl コマンド（「あ」×101 文字 = 101 コードポイント）:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"あああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああい"}'
-```
-
-> 注意: 上記は「あ」100 個 + 「い」1 個 = 101 コードポイント。
-
-**期待レスポンス:**
-
-- HTTP ステータス: `400 Bad Request`
-
-```json
-{
-  "error": "VALIDATION",
-  "message": "入力に誤りがあります",
-  "fields": {
-    "content": "内容は100文字以内で入力してください"
-  }
-}
-```
-
----
-
-### IT-S-10 スケジュール登録: 絵文字 100 コードポイント → 201
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-10 |
-| 前提条件 | 初期データが存在する |
-| 優先度 | M |
-
-**説明:**
-
-`content` のバリデーションは **コードポイント数**で計測される（`String.codePointCount` または相当）。  
-絵文字はサロゲートペア（UTF-16 で 2 char）だが、1 コードポイントとして数える。  
-😀（U+1F600）×100 個 = 100 コードポイント → 201 になるべき。
-
-**curl コマンド:**
-
-```bash
-python3 -c "import json; print(json.dumps({'memberId':1,'date':'2026-05-10','content':'😀'*100}))" | \
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d @-
-```
-
-または直接指定:
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  --data-binary $'{"memberId":1,"date":"2026-05-10","content":"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"}'
-```
-
-> 注意: 上記 😀 は 100 個であることを確認すること。
-
-**期待レスポンス:**
-
-- HTTP ステータス: `201 Created`
-
----
-
-### IT-S-11 スケジュール登録: memberId=6 → 400（BUG-VALIDATOR）
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-11 |
-| バグ番号 | BUG-VALIDATOR |
-| 前提条件 | API でメンバーを 1 名追加済み（ID=6 が存在する） |
-| 優先度 | H |
-| 備考 | **これは既知バグ**。詳細は [セクション 8](#8-既知バグ-bug-validator-専用テスト) 参照 |
-
-**手順:**
-
-| ステップ | curlコマンド | 期待結果 |
-|---------|------------|---------|
-| 1 | POST /api/members `{"name":"おじいちゃん"}` | 201 + id=6 |
-| 2 | POST /api/schedules `{"memberId":6,"date":"2026-04-26","content":"散歩"}` | 400 + fields.memberId="不正なメンバーです" |
-
-**curl コマンド（ステップ 1）:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/members \
-  -H "Content-Type: application/json" \
-  -d '{"name":"おじいちゃん"}'
-```
-
-**curl コマンド（ステップ 2）:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":6,"date":"2026-04-26","content":"散歩"}'
-```
-
-**期待レスポンス（ステップ 2）:**
-
-- HTTP ステータス: `400 Bad Request`
-
-```json
-{
-  "error": "VALIDATION",
-  "message": "入力に誤りがあります",
-  "fields": {
-    "memberId": "不正なメンバーです"
-  }
-}
-```
-
----
-
-### IT-S-12 スケジュール登録: memberId=5 → 201（上限の 5 は問題なし）
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-12 |
-| 前提条件 | 初期データ（5 名）が存在する |
-| 優先度 | M |
-
-**curl コマンド:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":5,"date":"2026-05-01","content":"部活"}'
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `201 Created`
-
-```json
-{"id":1,"memberId":5,"date":"2026-05-01","content":"部活","deletedAt":null}
-```
-
----
-
-### IT-S-13 スケジュール更新: 正常 → 200
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-13 |
-| 前提条件 | ID=1 のスケジュールが登録済み |
-| 優先度 | H |
-
-**前提セットアップ:**
-
-```bash
-curl -s -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"出張"}'
-```
-
-**curl コマンド:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X PUT http://localhost:8080/api/schedules/1 \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-02","content":"出張（変更）"}'
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `200 OK`
-
-```json
-{"id":1,"memberId":1,"date":"2026-05-02","content":"出張（変更）","deletedAt":null}
-```
-
----
-
-### IT-S-14 スケジュール更新: 存在しない ID → 404
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-14 |
-| 前提条件 | ID=999 のスケジュールが存在しない |
-| 優先度 | H |
-
-**curl コマンド:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X PUT http://localhost:8080/api/schedules/999 \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"存在しない"}'
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `404 Not Found`
-
-```json
-{
-  "error": "NOT_FOUND",
-  "message": "指定された予定が見つかりません"
-}
-```
-
----
-
-### IT-S-15 スケジュール更新: 論理削除済み ID → 404
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-15 |
-| 前提条件 | ID=1 のスケジュールが論理削除済み |
-| 優先度 | H |
-
-**前提セットアップ:**
-
-```bash
-# 登録
-curl -s -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"出張"}'
-
-# 論理削除
-curl -s -X DELETE http://localhost:8080/api/schedules/1
-```
-
-**curl コマンド（論理削除済みに更新を試みる）:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X PUT http://localhost:8080/api/schedules/1 \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"更新しようとする"}'
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `404 Not Found`
-
-```json
-{
-  "error": "NOT_FOUND",
-  "message": "指定された予定が見つかりません"
-}
-```
-
----
-
-### IT-S-16 スケジュール削除: 論理削除 → 204（deleted_at 設定）
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-16 |
-| 前提条件 | ID=1 のスケジュールが存在し、deleted_at が null |
-| 優先度 | H |
-
-**説明:**
-
-`DELETE /api/schedules/{id}` は**論理削除**である。  
-DB の `deleted_at` カラムに削除日時が設定されるが、レコード自体は残る。  
-（物理削除は `POST /api/schedules/{id}/purge` で行う。IT-S-20 参照。）
-
-**前提セットアップ:**
-
-```bash
-curl -s -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"出張"}'
-```
-
-**curl コマンド:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X DELETE http://localhost:8080/api/schedules/1
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `204 No Content`
-- ボディ: なし
-
-**DB 確認 SQL（論理削除の確認）:**
-
-```sql
--- deleted_at が NULL 以外の値になっていること（物理削除ではない）
-SELECT id, content, deleted_at FROM schedules WHERE id = 1;
--- → deleted_at に日時が入っていること
-```
-
----
-
-### IT-S-17 スケジュール削除: 2 回目の論理削除 → 404
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-17 |
-| 前提条件 | ID=1 のスケジュールが既に論理削除済み |
-| 優先度 | H |
-
-**前提セットアップ（IT-S-16 の状態を継続）:**
-
-```bash
-# 1 回目の削除（論理削除）
-curl -s -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"出張"}'
-curl -s -X DELETE http://localhost:8080/api/schedules/1
-```
-
-**curl コマンド（2 回目の論理削除）:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X DELETE http://localhost:8080/api/schedules/1
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `404 Not Found`
-
-```json
-{
-  "error": "NOT_FOUND",
-  "message": "指定された予定が見つかりません"
-}
-```
-
----
-
-### IT-S-18 スケジュール復元: 論理削除から復元 → 200
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-18 |
-| 前提条件 | ID=1 のスケジュールが論理削除済み |
-| 優先度 | H |
-
-**説明:**
-
-`POST /api/schedules/{id}/restore` は論理削除された予定を復元する。  
-`deleted_at` が `null` に戻り、一覧取得で再び表示される。
-
-**前提セットアップ:**
-
-```bash
-curl -s -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"出張"}'
-curl -s -X DELETE http://localhost:8080/api/schedules/1
-```
-
-**curl コマンド:**
+**操作手順:**
+
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | IT-S-16 を先に実施する | 削除済みの予定の `id` を控えておく |
+| 2 | restore リクエストを送る | `200` が返り予定データが返ってくること |
+| 3 | 一覧取得で確認する | 予定が一覧に戻っていること |
+
+**【curl の場合】ステップ2（`id` が 1 の場合の例）:**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -X POST http://localhost:8080/api/schedules/1/restore
 ```
 
-**期待レスポンス:**
+**合格時の表示例:**
 
-- HTTP ステータス: `200 OK`
-
-```json
-{"id":1,"memberId":1,"date":"2026-05-01","content":"出張","deletedAt":null}
+```
+{"id":1,"memberId":1,"memberName":"お父さん","date":"2026-05-01","content":"ミーティング","deletedAt":null}
+HTTP_STATUS:200
 ```
 
-**DB 確認 SQL:**
+> `"deletedAt":null` になっていれば「削除が取り消された」状態です。
 
-```sql
--- deleted_at が NULL に戻っていること
-SELECT id, content, deleted_at FROM schedules WHERE id = 1;
-```
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `200` | それ以外（特に `404`） |
+| `deletedAt` フィールド | `null` | 日時が入ったまま |
+| 一覧取得 | 予定が戻っている | 戻っていない |
 
 ---
 
-### IT-S-19 スケジュール復元: 未削除 ID に restore → 404
+### IT-S-20 予定を完全に削除できること（purge）
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-S-19 |
-| 前提条件 | ID=1 のスケジュールが存在し、deleted_at が null（未削除状態） |
+| テストケースID | IT-S-20 |
+| 前提条件 | IT-S-16 で論理削除した予定がある |
 | 優先度 | H |
 
-**前提セットアップ:**
+> ⚠️ **purge は取り消しできません。** 必ず先に IT-S-16（論理削除）を行ってから実施してください。
+> 論理削除をしていない予定に purge を送ると `404` エラーになります（IT-S-21 で確認）。
 
-```bash
-curl -s -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"出張"}'
-```
+**操作手順:**
 
-**curl コマンド:**
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | IT-S-16 を先に実施する（論理削除） | `id` を控えておく |
+| 2 | purge リクエストを送る | `204` が返ること |
+| 3 | H2コンソールで確認する | そのIDのレコードが完全になくなっていること |
 
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules/1/restore
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `404 Not Found`
-
-```json
-{
-  "error": "NOT_FOUND",
-  "message": "指定された予定が見つかりません（論理削除済みではありません）"
-}
-```
-
----
-
-### IT-S-20 スケジュール物理削除: purge → 204
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-S-20 |
-| 前提条件 | ID=1 のスケジュールが論理削除済み |
-| 優先度 | H |
-
-**説明:**
-
-`POST /api/schedules/{id}/purge` は**物理削除**である。  
-DB からレコードが完全に消去される。  
-（論理削除の `DELETE` と異なり、復元不可能。）
-
-**前提セットアップ:**
-
-```bash
-curl -s -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"出張"}'
-curl -s -X DELETE http://localhost:8080/api/schedules/1
-```
-
-**curl コマンド:**
+**【curl の場合】ステップ2（`id` が 1 の場合の例）:**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -X POST http://localhost:8080/api/schedules/1/purge
 ```
 
-**期待レスポンス:**
+**合格時の表示例（ボディなし）:**
 
-- HTTP ステータス: `204 No Content`
-- ボディ: なし
+```
 
-**DB 確認 SQL（物理削除の確認）:**
+HTTP_STATUS:204
+```
+
+**【H2コンソールで確認する場合】**
 
 ```sql
--- レコード自体が存在しないこと（論理削除と違い行ごと消える）
 SELECT * FROM schedules WHERE id = 1;
--- → 0 行であること
 ```
+
+0行（結果なし）であれば完全に削除されています。
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `204` | それ以外 |
+| H2コンソール | 0行（レコードなし） | まだレコードが残っている |
 
 ---
 
-### IT-S-21 スケジュール物理削除: 未削除 ID に purge → 404
+### IT-S-21 論理削除していない予定はpurgeできないこと
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-S-21 |
-| 前提条件 | ID=1 のスケジュールが存在し、deleted_at が null（未削除状態） |
+| テストケースID | IT-S-21 |
+| 前提条件 | 削除していない（通常状態の）予定が1件以上ある |
 | 優先度 | H |
 
-**前提セットアップ:**
+**【curl の場合】（予定を登録してすぐ purge を試みる）**
 
 ```bash
+# まず予定を登録する
 curl -s -X POST http://localhost:8080/api/schedules \
   -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"出張"}'
+  -d '{"memberId":1,"date":"2026-05-01","content":"purgeテスト"}'
+# 返ってきた id を控える（例: {"id":3,...}）
+
+# DELETE（論理削除）をせずにいきなり purge を試みる（id=3 の場合）
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules/3/purge
 ```
 
-**curl コマンド:**
+**合格時の表示例:**
+
+```
+{"error":"NOT_FOUND","message":"schedule not found: 3"}
+HTTP_STATUS:404
+```
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `404` | `204`（削除できてしまった） |
+
+---
+
+## 第6章 シナリオフローテスト
+
+シナリオテストは複数のステップを順番に実施します。途中で失敗した場合はサーバーを再起動して最初からやり直してください。
+
+---
+
+### IT-SC-01 予定の登録→確認→削除→復元→完全削除の一連操作
+
+| 項目 | 内容 |
+|------|------|
+| テストケースID | IT-SC-01 |
+| 前提条件 | サーバー起動直後（スケジュールが0件） |
+| 優先度 | H |
+
+**全ステップを順番に実施してください。各ステップの `id` は前のステップで返ってきた値を使います。**
+
+---
+
+**ステップ1: 予定を登録する**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules/1/purge
-```
-
-**期待レスポンス:**
-
-- HTTP ステータス: `404 Not Found`
-
-```json
-{
-  "error": "NOT_FOUND",
-  "message": "指定された予定が見つかりません（論理削除済みではありません）"
-}
-```
-
----
-
-## 6. シナリオフローテスト
-
-### IT-SC-01 一気通貫フロー: 登録→一覧→削除→復元→purge
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-SC-01 |
-| 前提条件 | サーバー起動直後（schedules テーブルが空） |
-| 優先度 | H |
-
-**手順（全ステップを順番に実行すること）:**
-
-| ステップ | 操作 | curlコマンド | 期待結果 |
-|---------|------|------------|---------|
-| 1 | スケジュール登録 | `POST /api/schedules` | 201 + id=1 + Location ヘッダー |
-| 2 | 一覧取得（表示確認） | `GET /api/schedules?from=2026-05-01&to=2026-05-01` | 200 + 1 件含む |
-| 3 | 論理削除 | `DELETE /api/schedules/1` | 204 |
-| 4 | 一覧取得（除外確認） | `GET /api/schedules?from=2026-05-01&to=2026-05-01` | 200 + [] |
-| 5 | 復元 | `POST /api/schedules/1/restore` | 200 + deletedAt=null |
-| 6 | 一覧取得（復元確認） | `GET /api/schedules?from=2026-05-01&to=2026-05-01` | 200 + 1 件含む |
-| 7 | 物理削除 | `POST /api/schedules/1/purge` | 204 |
-| 8 | 一覧取得（物理削除確認） | `GET /api/schedules?from=2026-05-01&to=2026-05-01` | 200 + [] |
-| 9 | DB 確認 | H2 コンソールで SELECT | 0 行（レコード消滅） |
-
-**実行スクリプト:**
-
-```bash
-BASE="http://localhost:8080"
-
-echo "=== ステップ1: スケジュール登録 ==="
-curl -s -D - -X POST "$BASE/api/schedules" \
+  -X POST http://localhost:8080/api/schedules \
   -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2026-05-01","content":"一気通貫テスト"}'
-echo ""
-
-echo "=== ステップ2: 一覧取得（登録確認） ==="
-curl -s "$BASE/api/schedules?from=2026-05-01&to=2026-05-01"
-echo ""
-
-echo "=== ステップ3: 論理削除 ==="
-curl -s -w "HTTP_STATUS:%{http_code}" -X DELETE "$BASE/api/schedules/1"
-echo ""
-
-echo "=== ステップ4: 一覧取得（論理削除後 - 空のはず） ==="
-curl -s "$BASE/api/schedules?from=2026-05-01&to=2026-05-01"
-echo ""
-
-echo "=== ステップ5: 復元 ==="
-curl -s -w "HTTP_STATUS:%{http_code}" -X POST "$BASE/api/schedules/1/restore"
-echo ""
-
-echo "=== ステップ6: 一覧取得（復元確認） ==="
-curl -s "$BASE/api/schedules?from=2026-05-01&to=2026-05-01"
-echo ""
-
-echo "=== ステップ7: 物理削除(purge) ==="
-curl -s -w "HTTP_STATUS:%{http_code}" -X POST "$BASE/api/schedules/1/purge"
-echo ""
-
-echo "=== ステップ8: 一覧取得（物理削除後 - 空のはず） ==="
-curl -s "$BASE/api/schedules?from=2026-05-01&to=2026-05-01"
-echo ""
+  -d '{"memberId":2,"date":"2026-05-01","content":"家族会議"}'
 ```
+
+期待: `HTTP_STATUS:201` / 返ってきた `id` を控える（以下 `{id}` と表記）
 
 ---
 
-### IT-SC-02 BUG-VALIDATOR 再現: メンバー追加（ID=6）→ 予定登録 → 400
+**ステップ2: 一覧取得で登録されていることを確認する**
+
+```bash
+curl -s "http://localhost:8080/api/schedules?from=2026-05-01&to=2026-05-01"
+```
+
+期待: `"content":"家族会議"` が含まれていること
+
+---
+
+**ステップ3: 論理削除する**
+
+```bash
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X DELETE http://localhost:8080/api/schedules/{id}
+```
+
+> `{id}` をステップ1で控えた数字に置き換えてください（例: `3`）
+
+期待: `HTTP_STATUS:204`
+
+---
+
+**ステップ4: 一覧から消えていることを確認する**
+
+```bash
+curl -s "http://localhost:8080/api/schedules?from=2026-05-01&to=2026-05-01"
+```
+
+期待: `"content":"家族会議"` が含まれて**いない**こと（`[]` または他の予定のみ）
+
+---
+
+**ステップ5: 復元する（restore）**
+
+```bash
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules/{id}/restore
+```
+
+期待: `HTTP_STATUS:200` / `"deletedAt":null` が含まれること
+
+---
+
+**ステップ6: 一覧に戻っていることを確認する**
+
+```bash
+curl -s "http://localhost:8080/api/schedules?from=2026-05-01&to=2026-05-01"
+```
+
+期待: `"content":"家族会議"` が再び含まれること
+
+---
+
+**ステップ7: 論理削除してから完全削除する（purge）**
+
+```bash
+# まず論理削除
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X DELETE http://localhost:8080/api/schedules/{id}
+
+# 次に完全削除（purge）
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules/{id}/purge
+```
+
+期待（1行目の削除）: `HTTP_STATUS:204`
+期待（2行目の purge）: `HTTP_STATUS:204`
+
+---
+
+**ステップ8: 完全に消えていることを確認する**
+
+```bash
+curl -s "http://localhost:8080/api/schedules?from=2026-05-01&to=2026-05-01"
+```
+
+期待: `"content":"家族会議"` が含まれて**いない**こと
+
+H2コンソールで確認する場合:
+
+```sql
+SELECT * FROM schedules;
+```
+
+0行（全て消えている）であれば合格。
+
+---
+
+**全ステップの合否記録表:**
+
+| ステップ | 操作 | 期待ステータス | 実際のステータス | 合否 |
+|---------|------|-------------|--------------|------|
+| 1 | 登録 | 201 | | |
+| 2 | 一覧確認（登録後） | 200・データあり | | |
+| 3 | 論理削除 | 204 | | |
+| 4 | 一覧確認（削除後） | 200・データなし | | |
+| 5 | restore | 200 | | |
+| 6 | 一覧確認（復元後） | 200・データあり | | |
+| 7-a | 論理削除（purge前） | 204 | | |
+| 7-b | purge | 204 | | |
+| 8 | 一覧確認（purge後） | 200・データなし | | |
+
+---
+
+### IT-SC-02 新しく追加したメンバーへの予定登録が失敗する（BUG-VALIDATOR）
 
 | 項目 | 内容 |
 |------|------|
-| テストケース ID | IT-SC-02 |
+| テストケースID | IT-SC-02 |
+| 判定 | **FAIL（既知バグ・合格対象外）** |
 | バグ番号 | BUG-VALIDATOR |
-| 前提条件 | 初期データ（5 名）のみ存在する |
 | 優先度 | H |
-| 期待結果 | **バグにより FAIL**（201 になるべきところが 400 になる） |
 
-**手順:**
+> **このテストについて**: このテストは**失敗することが正解**です。
+> バグが存在することを確認・記録するためのテストです。
+> `400` が返ってきたら「バグが再現できた」＝「このテストは記録OK」です。
 
-| ステップ | 操作 | 期待結果（正しい動作） | 実際の動作（バグ） |
-|---------|------|-----------------|--------------|
-| 1 | POST /api/members `{"name":"おじいちゃん"}` | 201 + id=6 | 201 + id=6（正常） |
-| 2 | POST /api/schedules `{"memberId":6,...}` | 201 Created | **400 Bad Request**（バグ） |
+**バグの内容**: アプリ内部のコード（`ScheduleValidator.java`）に
+`VALID_MEMBER_IDS = {1, 2, 3, 4, 5}` というハードコードがあり、
+ID=6以上のメンバーには永遠に予定を登録できない状態になっています。
 
-**curl コマンド:**
+---
+
+**ステップ1: 6人目のメンバーを追加する**
 
 ```bash
-echo "=== ステップ1: メンバー追加（ID=6 が払い出されるはず） ==="
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -X POST http://localhost:8080/api/members \
   -H "Content-Type: application/json" \
   -d '{"name":"おじいちゃん"}'
-echo ""
-
-echo "=== ステップ2: 追加メンバー（ID=6）で予定登録 → BUG により 400 になる ==="
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":6,"date":"2026-04-26","content":"散歩"}'
-echo ""
 ```
 
-**バグの根本原因:**
-
-`ScheduleValidator.java` の 12 行目:
-
-```java
-private static final Set<Integer> VALID_MEMBER_IDS = Set.of(1, 2, 3, 4, 5);
-```
-
-有効なメンバー ID がハードコードされており、API でメンバーを追加しても  
-バリデーションの許可リストが更新されない。  
-**これは既知バグであり、`ScheduleValidator.VALID_MEMBER_IDS` のハードコードが原因。**  
-修正は DB からメンバー ID を動的に取得するよう変更する必要がある。
+期待: `HTTP_STATUS:201` / `"id":6` が含まれること
 
 ---
 
-### IT-SC-03 閏日 2028-02-29 登録 → 201
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-SC-03 |
-| 前提条件 | 初期データが存在する |
-| 優先度 | M |
-
-**説明:**
-
-2028 年は閏年（4 の倍数かつ 100 の倍数でない）。  
-2028-02-29 は存在する有効な日付のため 201 になること。
-
-**curl コマンド:**
+**ステップ2: ID=6のメンバーに予定を登録しようとする**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -X POST http://localhost:8080/api/schedules \
   -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2028-02-29","content":"閏日テスト"}'
+  -d '{"memberId":6,"date":"2026-05-01","content":"散歩"}'
 ```
 
-**期待レスポンス:**
+**バグが確認できた場合の表示（これが「正解」）:**
 
-- HTTP ステータス: `201 Created`
-
-```json
-{"id":1,"memberId":1,"date":"2028-02-29","content":"閏日テスト","deletedAt":null}
+```
+{"error":"VALIDATION","message":"入力に誤りがあります","fields":{"memberId":"不正なメンバーです"}}
+HTTP_STATUS:400
 ```
 
 ---
 
-### IT-SC-04 存在しない閏日 2027-02-29 登録 → 400
-
-| 項目 | 内容 |
-|------|------|
-| テストケース ID | IT-SC-04 |
-| 前提条件 | 初期データが存在する |
-| 優先度 | M |
-
-**説明:**
-
-2027 年は閏年ではない（4 の倍数だが 100 の倍数でもなく、ただし 2027 自体は 4 で割り切れない）。  
-2027-02-29 は存在しない日付のため 400 になること。
-
-**curl コマンド:**
+**ステップ3: ID=5（長男）には問題なく登録できることを確認する**
 
 ```bash
 curl -s -w "\nHTTP_STATUS:%{http_code}" \
   -X POST http://localhost:8080/api/schedules \
   -H "Content-Type: application/json" \
-  -d '{"memberId":1,"date":"2027-02-29","content":"存在しない閏日"}'
+  -d '{"memberId":5,"date":"2026-05-01","content":"サッカー"}'
 ```
 
-**期待レスポンス:**
+期待: `HTTP_STATUS:201`（ID=1〜5は正常に動く）
 
-- HTTP ステータス: `400 Bad Request`
+---
+
+**IT-SC-02 の判定記録:**
+
+| ステップ | 期待 | 実際 | 記録 |
+|---------|------|------|------|
+| 1 メンバー追加 | 201 + id=6 | | |
+| 2 ID=6 で予定登録 | **400**（バグ再現） | | |
+| 3 ID=5 で予定登録 | 201（正常動作） | | |
+
+> ステップ2が `400` になれば **BUG-VALIDATOR が再現できた**として記録してください。
+> `201` になった場合はバグが修正されている可能性があります。開発担当者に連絡してください。
+
+---
+
+### IT-SC-03 閏日（2028-02-29）に予定を登録できること
+
+| テストケースID | IT-SC-03 |
+|--------------|---------|
+
+```bash
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules \
+  -H "Content-Type: application/json" \
+  -d '{"memberId":1,"date":"2028-02-29","content":"閏日イベント"}'
+```
+
+期待: `HTTP_STATUS:201`
+
+---
+
+### IT-SC-04 存在しない閏日（2027-02-29）は弾かれること
+
+| テストケースID | IT-SC-04 |
+|--------------|---------|
+
+> 2027年は閏年ではないため、2月29日は存在しません。
+
+```bash
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules \
+  -H "Content-Type: application/json" \
+  -d '{"memberId":1,"date":"2027-02-29","content":"存在しない日"}'
+```
+
+期待: `HTTP_STATUS:400`
+
+---
+
+## 第7章 エラーレスポンスフォーマット確認
+
+APIがエラーを返すとき、常に以下の形式のJSONが返ってきます。
 
 ```json
 {
-  "error": "VALIDATION",
-  "message": "入力に誤りがあります",
+  "error": "エラーの種類",
+  "message": "エラーの説明文",
   "fields": {
-    "date": "無効な日付です"
+    "フィールド名": "そのフィールドのエラー内容"
   }
 }
 ```
 
----
+> `fields` はバリデーションエラーの場合のみ含まれます。NOT_FOUND や CONFLICT には含まれません。
 
-## 7. エラーレスポンスフォーマット確認リスト
+**エラー種類一覧:**
 
-全エラーレスポンスは以下のフォーマットに準拠していること。
-
-### 7.1 標準エラーフォーマット
-
-```json
-{
-  "error": "<エラーコード>",
-  "message": "<説明>",
-  "fields": {
-    "<フィールド名>": "<フィールド別エラーメッセージ>"
-  }
-}
-```
-
-`fields` は検証エラー（400）の場合のみ含まれる。
-
-### 7.2 HTTP ステータスコード別確認表
-
-| HTTP ステータス | `error` フィールド値 | 発生条件 | 確認テストケース |
-|--------------|-----------------|--------|--------------|
-| 400 | `VALIDATION` | バリデーションエラー | IT-M-03〜05, IT-S-03〜05, IT-S-09, IT-S-11, IT-SC-04 |
-| 404 | `NOT_FOUND` | リソース未存在 | IT-M-07, IT-S-14, IT-S-15, IT-S-17, IT-S-19, IT-S-21 |
-| 405 | （任意） | 未対応 HTTP メソッド | 下記 curl で確認 |
-| 409 | `CONFLICT` | ON DELETE RESTRICT 違反 | IT-M-09 |
-| 415 | （任意） | Content-Type 不正 | 下記 curl で確認 |
-
-### 7.3 405・415 の確認コマンド
-
-**405 確認（PATCH は未対応想定）:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X PATCH http://localhost:8080/api/members/1 \
-  -H "Content-Type: application/json" \
-  -d '{"name":"パパ"}'
-```
-
-**415 確認（Content-Type なし）:**
-
-```bash
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/members \
-  -d '{"name":"テスト"}'
-```
+| `error` の値 | HTTPステータス | 意味 |
+|-------------|-------------|------|
+| `VALIDATION` | 400 | 入力値が不正 |
+| `NOT_FOUND` | 404 | 指定したIDが存在しない |
+| `CONFLICT` | 409 | 競合エラー（予定があるメンバーの削除など） |
 
 ---
 
-## 8. 既知バグ BUG-VALIDATOR 専用テスト
+## 第8章 既知バグ BUG-VALIDATOR 専用テスト
 
-### バグ概要
+このバグは **IT-SC-02** で再現手順を説明しています。
+以下に概要と修正方針をまとめます。
+
+**バグの概要:**
 
 | 項目 | 内容 |
 |------|------|
-| バグ番号 | BUG-VALIDATOR |
-| 発見箇所 | `ScheduleValidator.java` 12 行目 |
-| バグ種別 | ロジックバグ（静的ハードコード） |
-| 重大度 | 高（メンバー追加後に予定が登録できない） |
-| ステータス | 未修正（既知） |
+| バグID | BUG-VALIDATOR |
+| 発生箇所 | `src/main/java/com/family/schedule/service/ScheduleValidator.java` 12行目 |
+| 内容 | `VALID_MEMBER_IDS = Set.of(1, 2, 3, 4, 5)` とハードコードされているため、ID=6以上のメンバーへの予定登録が常に 400 エラーになる |
+| 影響 | メンバーを6人目以降に追加しても、そのメンバーの予定が一切登録できない |
+| 修正方針 | `ScheduleValidator` でのハードコード検証を廃止し、`MemberRepository.existsById()` を使った動的なメンバー存在確認に置き換える |
 
-### バグの詳細説明
+---
 
-`ScheduleValidator.java` の 12 行目において、有効なメンバー ID が以下のように**静的なセット**としてハードコードされている:
+## 付録 テスト結果記録シート
 
-```java
-private static final Set<Integer> VALID_MEMBER_IDS = Set.of(1, 2, 3, 4, 5);
-```
+テストを実施したら以下の表に記録してください。
 
-**これは既知バグであり、`ScheduleValidator.VALID_MEMBER_IDS` のハードコードが原因である。**
+**実施情報:**
 
-システムの初期状態では ID が 1〜5 の 5 名のメンバーが存在するため、通常の操作では問題が表面化しない。  
-しかし `POST /api/members` でメンバーを追加すると ID=6 以降が払い出されるにもかかわらず、  
-`ScheduleValidator` の許可リストには ID=6 以降が含まれていないため、  
-ID=6 以降のメンバーを指定した予定登録は常に `400 Bad Request` になる。
+| 項目 | 記入欄 |
+|------|--------|
+| 実施日 | |
+| 実施者 | |
+| サーバーバージョン | |
+| 使用ツール（Postman / curl） | |
 
-### 影響範囲
+**テスト結果一覧:**
 
-- `POST /api/schedules` で `memberId` が 6 以上の場合、常に 400 エラー
-- `PUT /api/schedules/{id}` で `memberId` を 6 以上に変更する場合も同様に 400 エラー（推定）
+| テストケースID | テスト内容 | 期待ステータス | 実際のステータス | 合否（○/×） | 備考 |
+|-------------|---------|-------------|--------------|-----------|------|
+| IT-M-01 | メンバー一覧取得 | 200 | | | |
+| IT-M-02 | メンバー追加（正常） | 201 | | | |
+| IT-M-03 | メンバー追加（10名超） | 400 | | | |
+| IT-M-04 | メンバー追加（重複名） | 400 | | | |
+| IT-M-05 | メンバー追加（名前空） | 400 | | | |
+| IT-M-06 | メンバー名前変更 | 200 | | | |
+| IT-M-07 | メンバー変更（ID不在） | 404 | | | |
+| IT-M-08 | メンバー削除（予定なし） | 204 | | | |
+| IT-M-09 | メンバー削除（予定あり） | 409 | | | |
+| IT-S-01 | 予定一覧（0件） | 200 | | | |
+| IT-S-07 | 予定登録（正常） | 201 | | | |
+| IT-S-08 | 予定登録（100文字） | 201 | | | |
+| IT-S-09 | 予定登録（101文字） | 400 | | | |
+| IT-S-16 | 予定削除（論理削除） | 204 | | | |
+| IT-S-18 | 予定復元（restore） | 200 | | | |
+| IT-S-20 | 予定完全削除（purge） | 204 | | | |
+| IT-S-21 | purge（論理削除前） | 404 | | | |
+| IT-SC-01 | 一連フロー | 全ステップ合格 | | | |
+| IT-SC-02 | BUG-VALIDATOR再現 | **FAIL（バグ確認）** | | | |
+| IT-SC-03 | 閏日登録 | 201 | | | |
+| IT-SC-04 | 存在しない閏日 | 400 | | | |
 
-### 再現手順（詳細）
+**総合判定:** 合格 / 不合格 （IT-SC-02を除く全件合格で「合格」）
 
-```bash
-# 手順1: 初期状態確認（メンバー5名のみ）
-echo "--- 初期メンバー確認 ---"
-curl -s http://localhost:8080/api/members | python3 -m json.tool
-
-# 手順2: 6人目のメンバーを追加
-echo "--- 6人目追加 ---"
-RESPONSE=$(curl -s -X POST http://localhost:8080/api/members \
-  -H "Content-Type: application/json" \
-  -d '{"name":"おじいちゃん"}')
-echo "$RESPONSE"
-# {"id":6,"name":"おじいちゃん","displayOrder":6} が返ること
-
-# 手順3: ID=6 のメンバーで予定を登録 → バグ再現
-echo "--- ID=6 で予定登録（400 になるはず） ---"
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":6,"date":"2026-04-26","content":"散歩"}'
-# 期待（バグなし）: 201 Created
-# 実際（バグあり）: 400 {"error":"VALIDATION","fields":{"memberId":"不正なメンバーです"}}
-
-# 手順4: ID=5 のメンバー（初期値内）では問題なく登録できること
-echo "--- ID=5 で予定登録（201 になるはず） ---"
-curl -s -w "\nHTTP_STATUS:%{http_code}" \
-  -X POST http://localhost:8080/api/schedules \
-  -H "Content-Type: application/json" \
-  -d '{"memberId":5,"date":"2026-04-26","content":"散歩"}'
-# 期待: 201 Created（ID=5 は VALID_MEMBER_IDS に含まれるため正常）
-```
-
-### 修正方針（参考）
-
-`ScheduleValidator` でメンバー ID の検証を行う際、静的なセットではなく  
-`MemberRepository` を通じて DB から動的にメンバー ID を取得するよう変更する。
-
-```java
-// 修正前（バグあり）
-private static final Set<Integer> VALID_MEMBER_IDS = Set.of(1, 2, 3, 4, 5);
-
-// 修正後（案）
-@Autowired
-private MemberRepository memberRepository;
-
-private boolean isValidMemberId(Integer memberId) {
-    return memberRepository.existsById(memberId);
-}
-```
-
-### テスト結果記録欄
-
-| テストケース ID | 実行日 | 実行者 | 結果 | 備考 |
-|--------------|------|------|------|------|
-| IT-S-11 | | | FAIL（既知バグ） | BUG-VALIDATOR |
-| IT-S-12 | | | | |
-| IT-SC-02 | | | FAIL（既知バグ） | BUG-VALIDATOR |
+**特記事項:**
