@@ -404,6 +404,7 @@ curl http://localhost:8080/api/members
 | IT-SC-02 | 新メンバー追加後に予定登録が失敗する（バグ確認） | H |
 | IT-SC-03 | 閏日（2028-02-29）に予定登録できる | M |
 | IT-SC-04 | 存在しない閏日（2027-02-29）は弾かれる | M |
+| IT-SC-05 | 2ユーザーが同時更新した場合、最後の更新が反映される（NFR-07） | L |
 
 ---
 
@@ -1492,6 +1493,89 @@ curl -s -w "\nHTTP_STATUS:%{http_code}" \
 
 ---
 
+### IT-SC-05 2ユーザーが同時更新した場合、最後の更新が反映されること（NFR-07）
+
+| 項目 | 内容 |
+|------|------|
+| テストケースID | IT-SC-05 |
+| 対応要件 | NFR-07（同時編集競合：最後の更新が勝つ） |
+| 前提条件 | サーバー起動済み（スケジュールが0件）。bash が使えること（Git Bash または WSL 可） |
+| 優先度 | L |
+
+> **このテストの目的：** 同じ予定に対して2つのPUTリクエストが同時に到着した場合、
+> サーバーが500エラーを返さず、かつ最終的なデータが一貫した状態（どちらか一方の更新内容）
+> になることを確認します（Last-Write-Wins）。
+
+**全ステップを順番に実施してください。**
+
+---
+
+**ステップ1: 予定を登録する**
+
+```bash
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules \
+  -H "Content-Type: application/json" \
+  -d '{"memberId":1,"date":"2026-05-10","content":"初期内容"}'
+```
+
+期待: `HTTP_STATUS:201`。返ってきた `id` を控える（以下 `{id}` と表記）。
+
+---
+
+**ステップ2: 2つのPUTリクエストを同時に送る（`{id}` を実際のIDに置き換えて実行）**
+
+```bash
+curl -s -o /tmp/result_a.json -w "%{http_code}" \
+  -X PUT http://localhost:8080/api/schedules/{id} \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Aの更新"}' > /tmp/status_a.txt &
+curl -s -o /tmp/result_b.json -w "%{http_code}" \
+  -X PUT http://localhost:8080/api/schedules/{id} \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Bの更新"}' > /tmp/status_b.txt &
+wait
+```
+
+続けて各リクエストの結果を確認する:
+
+```bash
+echo "=== Aのステータス ===" && cat /tmp/status_a.txt
+echo "=== Aのレスポンス ===" && cat /tmp/result_a.json
+echo "=== Bのステータス ===" && cat /tmp/status_b.txt
+echo "=== Bのレスポンス ===" && cat /tmp/result_b.json
+```
+
+---
+
+**ステップ3: 最終的なデータを確認する**
+
+```bash
+curl -s "http://localhost:8080/api/schedules?from=2026-05-10&to=2026-05-10"
+```
+
+`"content"` の値が `"Aの更新"` または `"Bの更新"` のどちらか一方であれば合格。
+
+**合格時の表示例（Bが後に到達した場合）:**
+
+```
+[{"id":1,"memberId":1,"memberName":"お父さん","date":"2026-05-10","content":"Bの更新",...}]
+HTTP_STATUS:200
+```
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| A のステータス | `200` | `500`（サーバーエラー） |
+| B のステータス | `200` | `500`（サーバーエラー） |
+| 最終content（ステップ3） | `"Aの更新"` または `"Bの更新"` のどちらか一方 | `"初期内容"` のまま・空・2つの値が混在した壊れたデータ |
+
+> **補足：** どちらの更新が残るかは実行タイミング次第で変わります。
+> 重要なのは「最終状態が一貫している（どちらか一方の完全な値）」ことと「500エラーが出ない」ことです。
+
+---
+
 ## 第7章 エラーレスポンスフォーマット確認
 
 APIがエラーを返すとき、常に以下の形式のJSONが返ってきます。
@@ -1573,6 +1657,7 @@ APIがエラーを返すとき、常に以下の形式のJSONが返ってきま�
 | IT-SC-02 | BUG-VALIDATOR再現 | **FAIL（バグ確認）** | | | |
 | IT-SC-03 | 閏日登録 | 201 | | | |
 | IT-SC-04 | 存在しない閏日 | 400 | | | |
+| IT-SC-05 | 同時更新（Last-Write-Wins） | A:200 / B:200 / 最終:一方の値 | | | |
 
 **総合判定:** 合格 / 不合格 （IT-SC-02を除く全件合格で「合格」）
 
