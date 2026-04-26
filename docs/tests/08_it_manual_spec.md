@@ -375,7 +375,7 @@ curl http://localhost:8080/api/members
 | ID | エンドポイント | 確認内容 | 期待ステータス | 優先度 |
 |----|-------------|---------|-------------|------|
 | IT-S-01 | GET /api/schedules | 0件のとき空配列が返る | 200 | H |
-| IT-S-02 | GET /api/schedules | 複数件・日付順で返る | 200 | H |
+| IT-S-02 | GET /api/schedules | 同一人・同一日の複数件が全て返る（FR-06） | 200 | H |
 | IT-S-03 | GET /api/schedules | 開始日 > 終了日は弾かれる | 400 | M |
 | IT-S-04 | GET /api/schedules | fromパラメータなしは弾かれる | 400 | M |
 | IT-S-05 | GET /api/schedules | 不正な日付形式は弾かれる | 400 | M |
@@ -901,6 +901,66 @@ HTTP_STATUS:200
 |---------|------|--------|
 | ステータスコード | `200` | それ以外 |
 | ボディ | `[]`（空の配列） | 何かデータが入っている |
+
+---
+
+### IT-S-02 同一人・同一日の予定が複数件返ること（FR-06）
+
+| 項目 | 内容 |
+|------|------|
+| テストケースID | IT-S-02 |
+| 前提条件 | 初期データ（5名）。スケジュールが0件の状態から開始 |
+| 優先度 | H |
+
+**操作手順:**
+
+| ステップ | 操作 | 確認すること |
+|---------|------|------------|
+| 1 | お父さん（id=1）の同じ日（2026-05-01）に予定を1件目登録する | `201` が返ること |
+| 2 | 同じ人・同じ日に予定を2件目登録する | `201` が返ること |
+| 3 | 一覧取得で確認する | **2件とも**返ってくること（片方だけでは不合格） |
+
+**【curl の場合】ステップ1:**
+
+```bash
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules \
+  -H "Content-Type: application/json" \
+  -d '{"memberId":1,"date":"2026-05-01","content":"午前：会議"}'
+```
+
+**【curl の場合】ステップ2:**
+
+```bash
+curl -s -w "\nHTTP_STATUS:%{http_code}" \
+  -X POST http://localhost:8080/api/schedules \
+  -H "Content-Type: application/json" \
+  -d '{"memberId":1,"date":"2026-05-01","content":"午後：客先訪問"}'
+```
+
+**【curl の場合】ステップ3（一覧確認）:**
+
+```bash
+curl -s "http://localhost:8080/api/schedules?from=2026-05-01&to=2026-05-01"
+```
+
+**合格時の表示例（2件とも含まれること）:**
+
+```json
+[
+  {"id":1,"memberId":1,"memberName":"お父さん","date":"2026-05-01","content":"午前：会議","deletedAt":null},
+  {"id":2,"memberId":1,"memberName":"お父さん","date":"2026-05-01","content":"午後：客先訪問","deletedAt":null}
+]
+HTTP_STATUS:200
+```
+
+**合否判定:**
+
+| 確認項目 | 合格 | 不合格 |
+|---------|------|--------|
+| ステータスコード | `200` | それ以外 |
+| 件数 | 配列に `2` 件ある | `1` 件しか返らない |
+| 両方のcontent | `"午前：会議"` と `"午後：客先訪問"` の両方が含まれる | どちらかが欠けている |
 
 ---
 
