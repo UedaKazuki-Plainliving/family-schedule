@@ -54,6 +54,18 @@ jobs:
       - name: API 統合テスト実行
         run: mvn verify -B -e -Dsurefire.skip=true -Dit.test="SchedulesApiIT,MembersApiIT,ScenarioFlowIT"
 
+      - name: 失敗詳細をサマリーに出力
+        if: failure()
+        run: |
+          echo "## API テスト失敗詳細" >> $GITHUB_STEP_SUMMARY
+          for f in target/failsafe-reports/*.txt; do
+            [ -f "$f" ] || continue
+            echo "### $f" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat "$f" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          done
+
       - name: テストレポートをアップロード
         if: always()
         uses: actions/upload-artifact@v4
@@ -85,6 +97,18 @@ jobs:
 
       - name: E2E テスト実行
         run: mvn failsafe:integration-test failsafe:verify -B -Dit.test="SelectUserE2ETest,ViewScheduleE2ETest,CreateScheduleE2ETest,EditScheduleE2ETest,DeleteScheduleE2ETest,FlickNavigationE2ETest,UserMemoryE2ETest,SwitchUserE2ETest,MemberManagementE2ETest,ScenarioE2ETest,ScreenTransitionE2ETest,DateBoundaryExploreTest,LocalStorageExploreTest,XssExploreTest"
+
+      - name: 失敗詳細をサマリーに出力
+        if: failure()
+        run: |
+          echo "## E2E テスト失敗詳細" >> $GITHUB_STEP_SUMMARY
+          for f in target/failsafe-reports/*.txt; do
+            [ -f "$f" ] || continue
+            echo "### $f" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat "$f" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          done
 
       - name: スクリーンショット・動画をアップロード
         if: always()
