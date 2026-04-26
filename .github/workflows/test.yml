@@ -103,7 +103,7 @@ jobs:
       - name: E2E テスト実行
         run: mvn failsafe:integration-test failsafe:verify -B -Dit.test="SelectUserE2ETest,ViewScheduleE2ETest,CreateScheduleE2ETest,EditScheduleE2ETest,DeleteScheduleE2ETest,FlickNavigationE2ETest,UserMemoryE2ETest,SwitchUserE2ETest,MemberManagementE2ETest,ScenarioE2ETest,ScreenTransitionE2ETest,DateBoundaryExploreTest,LocalStorageExploreTest,XssExploreTest"
 
-      - name: 失敗詳細をサマリー＆ログに出力
+      - name: 失敗詳細をサマリー＆ログ＆アノテーションに出力
         if: failure()
         run: |
           echo "## E2E テスト失敗詳細" >> $GITHUB_STEP_SUMMARY
@@ -115,10 +115,22 @@ jobs:
             cat "$f" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           done
-          for f in target/failsafe-reports/*.xml; do
-            [ -f "$f" ] || continue
-            grep -E "(testcase|failure|error)" "$f" | head -50 && echo "---"
-          done
+          # XML から失敗テスト名とエラーメッセージをアノテーションとして出力
+          python3 - <<'PYEOF'
+          import os, glob, xml.etree.ElementTree as ET
+          for f in glob.glob("target/failsafe-reports/TEST-*.xml"):
+              try:
+                  root = ET.parse(f).getroot()
+                  for tc in root.findall("testcase"):
+                      fail = tc.find("failure") or tc.find("error")
+                      if fail is not None:
+                          cls = tc.get("classname","")
+                          name = tc.get("name","")
+                          msg = (fail.get("message","") or fail.text or "")[:300].replace("\n"," ")
+                          print(f"::error title={cls}.{name}::{msg}")
+              except Exception as e:
+                  print(f"::warning::XML parse error {f}: {e}")
+          PYEOF
 
       - name: スクリーンショット・動画をアップロード
         if: always()
