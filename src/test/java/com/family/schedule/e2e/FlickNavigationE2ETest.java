@@ -13,7 +13,7 @@ class FlickNavigationE2ETest extends BaseE2ETest {
     @BeforeEach
     void navigateToSchedule() {
         sp = schedulePage();
-        setCurrentUser("長女", 3);
+        setCurrentUser(Members.DAUGHTER1);
         page.navigate(baseUrl() + "/");
         assertThat(sp.screen()).isVisible();
     }

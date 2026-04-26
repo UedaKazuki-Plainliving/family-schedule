@@ -10,8 +10,8 @@ class DeleteScheduleE2ETest extends BaseE2ETest {
 
     @BeforeEach
     void insertFixture() {
-        insertSchedule(5, today(), "サッカー教室"); // 長男(5)
-        setCurrentUser("お母さん", 2);
+        insertSchedule(Members.SON1, today(), "サッカー教室");
+        setCurrentUser(Members.MOM);
     }
 
     @Test
@@ -19,10 +19,10 @@ class DeleteScheduleE2ETest extends BaseE2ETest {
         SchedulePage sp = schedulePage();
         page.navigate(baseUrl() + "/");
 
-        sp.firstScheduleItem(5, today()).locator(".schedule-item-delete").click();
+        sp.firstScheduleItem(Members.SON1, today()).locator(".schedule-item-delete").click();
         page.waitForTimeout(500);
 
-        assertThat(sp.noScheduleInCell(5, today())).isVisible();
+        assertThat(sp.noScheduleInCell(Members.SON1, today())).isVisible();
         assertThat(sp.toast()).containsText("削除しました");
     }
 
@@ -31,7 +31,7 @@ class DeleteScheduleE2ETest extends BaseE2ETest {
         SchedulePage sp = schedulePage();
         page.navigate(baseUrl() + "/");
 
-        sp.firstScheduleItem(5, today()).locator(".schedule-item-delete").click();
+        sp.firstScheduleItem(Members.SON1, today()).locator(".schedule-item-delete").click();
         page.waitForTimeout(500);
 
         assertThat(sp.toast()).containsText("削除しました");
@@ -39,7 +39,7 @@ class DeleteScheduleE2ETest extends BaseE2ETest {
         sp.toast().locator("button:has-text('元に戻す')").click();
         page.waitForTimeout(1200);
 
-        assertThat(sp.scheduleItemText(5, today(), "サッカー教室")).isVisible();
+        assertThat(sp.scheduleItemText(Members.SON1, today(), "サッカー教室")).isVisible();
         assertThat(sp.toast()).hasText("元に戻しました");
     }
 }

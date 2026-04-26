@@ -21,7 +21,7 @@ class MemberManagementE2ETest extends BaseE2ETest {
     }
 
     private void openMemberModal() {
-        setCurrentUser("お父さん", 1);
+        setCurrentUser(Members.DAD);
         page.navigate(baseUrl() + "/");
         assertThat(schedulePage().screen()).isVisible();
         schedulePage().clickMemberSettings();
@@ -44,12 +44,12 @@ class MemberManagementE2ETest extends BaseE2ETest {
         MemberManagePage mp = memberManagePage();
         openMemberModal();
 
-        mp.clickRename("長女");
+        mp.clickRename(Members.DAUGHTER1.name);
         mp.submitRename("さくら");
         page.waitForTimeout(500);
 
         assertThat(mp.memberItem("さくら")).isVisible();
-        assertThat(mp.memberItem("長女")).hasCount(0);
+        assertThat(mp.memberItem(Members.DAUGHTER1.name)).hasCount(0);
     }
 
     @Test
@@ -57,23 +57,23 @@ class MemberManagementE2ETest extends BaseE2ETest {
         MemberManagePage mp = memberManagePage();
         openMemberModal();
 
-        mp.deleteMember("次女");
+        mp.deleteMember(Members.DAUGHTER2.name);
         page.waitForTimeout(500);
 
-        assertThat(mp.memberItem("次女")).hasCount(0);
+        assertThat(mp.memberItem(Members.DAUGHTER2.name)).hasCount(0);
     }
 
     @Test
     void 予定があるメンバーは削除できない() {
-        insertSchedule(5, today(), "サッカー教室"); // 長男(5)
+        insertSchedule(Members.SON1, today(), "サッカー教室");
         MemberManagePage mp = memberManagePage();
         openMemberModal();
 
-        mp.deleteMember("長男");
+        mp.deleteMember(Members.SON1.name);
         page.waitForTimeout(500);
 
         assertThat(mp.errorMessage()).isVisible();
-        assertThat(mp.memberItem("長男")).isVisible();
+        assertThat(mp.memberItem(Members.SON1.name)).isVisible();
     }
 
     @AfterEach
@@ -111,7 +111,7 @@ class MemberManagementE2ETest extends BaseE2ETest {
         MemberManagePage mp = memberManagePage();
         openMemberModal();
 
-        mp.addMember("お父さん");
+        mp.addMember(Members.DAD.name);
         page.waitForTimeout(500);
 
         assertThat(mp.errorMessage()).isVisible();

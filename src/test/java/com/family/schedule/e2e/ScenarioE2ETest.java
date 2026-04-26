@@ -27,9 +27,9 @@ class ScenarioE2ETest extends BaseE2ETest {
         snap("01_初回_S01_利用者選択");
 
         // 2. お母さん をタップ
-        sup.selectUser("お母さん");
+        sup.selectUser(Members.MOM.name);
         assertThat(sp.screen()).isVisible();
-        assertThat(sp.currentUserName()).hasText("お母さん");
+        assertThat(sp.currentUserName()).hasText(Members.MOM.name);
         snap("02_S02_スケジュール画面");
 
         // 4. ブラウザを閉じて再度開く = 同じコンテキストで再アクセス
@@ -41,7 +41,7 @@ class ScenarioE2ETest extends BaseE2ETest {
         // 5. 登録が3ステップ以内
         sp.clickAdd();             // step 1
         snap("04_S03_予定追加モーダル");
-        modal.selectWho("長男");
+        modal.selectWho(Members.SON1.name);
         modal.setContent("学童お迎え");  // step 2
         snap("05_S03_入力済み");
         modal.save();              // step 3
@@ -54,7 +54,7 @@ class ScenarioE2ETest extends BaseE2ETest {
     void TC_SC_02_長女の夜の予定() {
         SchedulePage sp = schedulePage();
         AddScheduleModal modal = addScheduleModal();
-        setCurrentUser("長女", 3);
+        setCurrentUser(Members.DAUGHTER1);
         page.navigate(baseUrl() + "/");
         assertThat(sp.screen()).isVisible();
 
@@ -67,10 +67,10 @@ class ScenarioE2ETest extends BaseE2ETest {
     @Test
     void TC_SC_04_次女の誤操作防止() {
         SchedulePage sp = schedulePage();
-        setCurrentUser("次女", 4);
+        setCurrentUser(Members.DAUGHTER2);
         context.request().post(baseUrl() + "/api/schedules",
                 com.microsoft.playwright.options.RequestOptions.create().setData(java.util.Map.of(
-                        "memberId", 4, "date", LocalDate.now().format(ISO), "content", "閲覧のみ")));
+                        "memberId", Members.DAUGHTER2.id, "date", LocalDate.now().format(ISO), "content", "閲覧のみ")));
 
         page.navigate(baseUrl() + "/");
         var item = sp.firstScheduleItemGlobal();
@@ -85,10 +85,10 @@ class ScenarioE2ETest extends BaseE2ETest {
     @Test
     void TC_SC_05_バツボタン削除とUNDO() {
         SchedulePage sp = schedulePage();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         context.request().post(baseUrl() + "/api/schedules",
                 com.microsoft.playwright.options.RequestOptions.create().setData(java.util.Map.of(
-                        "memberId", 5, "date", LocalDate.now().format(ISO), "content", "サッカー教室")));
+                        "memberId", Members.SON1.id, "date", LocalDate.now().format(ISO), "content", "サッカー教室")));
 
         page.navigate(baseUrl() + "/");
         snap("01_初期表示");

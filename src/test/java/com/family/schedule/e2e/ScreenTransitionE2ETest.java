@@ -17,8 +17,7 @@ class ScreenTransitionE2ETest extends BaseE2ETest {
 
     @Test
     void T02_LocalStorageありはS02() {
-        context.addInitScript(
-                "localStorage.setItem('familySchedule.currentUser','{\"id\":2,\"name\":\"お母さん\",\"displayOrder\":2}');");
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
         SchedulePage sp = schedulePage();
         assertThat(sp.screen()).isVisible();
@@ -28,14 +27,13 @@ class ScreenTransitionE2ETest extends BaseE2ETest {
     @Test
     void T03_名前ボタンタップでS02() {
         page.navigate(baseUrl() + "/");
-        selectUserPage().selectUser("お父さん");
+        selectUserPage().selectUser(Members.DAD.name);
         assertThat(schedulePage().screen()).isVisible();
     }
 
     @Test
     void T08_追加ボタンでS03_モーダル() {
-        context.addInitScript(
-                "localStorage.setItem('familySchedule.currentUser','{\"id\":2,\"name\":\"お母さん\",\"displayOrder\":2}');");
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
         AddScheduleModal modal = addScheduleModal();
         schedulePage().clickAdd();
@@ -45,8 +43,7 @@ class ScreenTransitionE2ETest extends BaseE2ETest {
 
     @Test
     void T17_キャンセルでS02に戻る() {
-        context.addInitScript(
-                "localStorage.setItem('familySchedule.currentUser','{\"id\":2,\"name\":\"お母さん\",\"displayOrder\":2}');");
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
         SchedulePage sp = schedulePage();
         AddScheduleModal modal = addScheduleModal();
@@ -58,8 +55,7 @@ class ScreenTransitionE2ETest extends BaseE2ETest {
 
     @Test
     void T14_今日に戻るボタン() {
-        context.addInitScript(
-                "localStorage.setItem('familySchedule.currentUser','{\"id\":2,\"name\":\"お母さん\",\"displayOrder\":2}');");
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
         SchedulePage sp = schedulePage();
         sp.flickLeft();

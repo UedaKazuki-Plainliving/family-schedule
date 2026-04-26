@@ -179,6 +179,10 @@ public abstract class BaseE2ETest {
         return "http://localhost:" + port;
     }
 
+    protected void setCurrentUser(Members member) {
+        setCurrentUser(member.name, member.id);
+    }
+
     protected void setCurrentUser(String name, int id) {
         context.addInitScript(
                 "localStorage.setItem('familySchedule.currentUser'," +
@@ -189,6 +193,10 @@ public abstract class BaseE2ETest {
     protected SchedulePage schedulePage() { return new SchedulePage(page); }
     protected AddScheduleModal addScheduleModal() { return new AddScheduleModal(page); }
     protected MemberManagePage memberManagePage() { return new MemberManagePage(page); }
+
+    protected void insertSchedule(Members member, String date, String content) {
+        insertSchedule(member.id, date, content);
+    }
 
     protected void insertSchedule(int memberId, String date, String content) {
         jdbc.update(

@@ -10,8 +10,8 @@ class EditScheduleE2ETest extends BaseE2ETest {
 
     @BeforeEach
     void insertFixture() {
-        insertSchedule(3, today(), "部活"); // 長女(3)
-        setCurrentUser("お父さん", 1);
+        insertSchedule(Members.DAUGHTER1, today(), "部活");
+        setCurrentUser(Members.DAD);
     }
 
     @Test
@@ -19,7 +19,7 @@ class EditScheduleE2ETest extends BaseE2ETest {
         SchedulePage sp = schedulePage();
         page.navigate(baseUrl() + "/");
 
-        sp.firstScheduleItem(3, today()).click();
+        sp.firstScheduleItem(Members.DAUGHTER1, today()).click();
 
         assertThat(sp.inlineEditInput()).isVisible();
         assertThat(sp.inlineEditInput()).hasValue("部活");
@@ -30,13 +30,13 @@ class EditScheduleE2ETest extends BaseE2ETest {
         SchedulePage sp = schedulePage();
         page.navigate(baseUrl() + "/");
 
-        sp.firstScheduleItem(3, today()).click();
+        sp.firstScheduleItem(Members.DAUGHTER1, today()).click();
         sp.inlineEditInput().fill("部活（19時まで）");
         sp.inlineEditInput().press("Enter");
         page.waitForTimeout(600);
 
         assertThat(sp.inlineEditInput()).hasCount(0);
-        assertThat(sp.scheduleItemText(3, today(), "部活（19時まで）")).isVisible();
+        assertThat(sp.scheduleItemText(Members.DAUGHTER1, today(), "部活（19時まで）")).isVisible();
         assertThat(sp.toast()).hasText("更新しました");
     }
 
@@ -45,13 +45,13 @@ class EditScheduleE2ETest extends BaseE2ETest {
         SchedulePage sp = schedulePage();
         page.navigate(baseUrl() + "/");
 
-        sp.firstScheduleItem(3, today()).click();
+        sp.firstScheduleItem(Members.DAUGHTER1, today()).click();
         sp.inlineEditInput().fill("変更途中");
         sp.inlineEditInput().press("Escape");
         page.waitForTimeout(200);
 
         assertThat(sp.inlineEditInput()).hasCount(0);
-        assertThat(sp.scheduleItemText(3, today(), "部活")).isVisible();
+        assertThat(sp.scheduleItemText(Members.DAUGHTER1, today(), "部活")).isVisible();
     }
 
     @Test
@@ -59,13 +59,13 @@ class EditScheduleE2ETest extends BaseE2ETest {
         SchedulePage sp = schedulePage();
         page.navigate(baseUrl() + "/");
 
-        sp.firstScheduleItem(3, today()).click();
+        sp.firstScheduleItem(Members.DAUGHTER1, today()).click();
         sp.inlineEditInput().fill("");
         sp.inlineEditInput().press("Enter");
         page.waitForTimeout(300);
 
         assertThat(sp.inlineEditInput()).hasCount(0);
-        assertThat(sp.scheduleItemText(3, today(), "部活")).isVisible();
+        assertThat(sp.scheduleItemText(Members.DAUGHTER1, today(), "部活")).isVisible();
     }
 
     @Test
@@ -73,7 +73,7 @@ class EditScheduleE2ETest extends BaseE2ETest {
         SchedulePage sp = schedulePage();
         page.navigate(baseUrl() + "/");
 
-        var item = sp.firstScheduleItem(3, today());
+        var item = sp.firstScheduleItem(Members.DAUGHTER1, today());
         item.hover();
         page.mouse().down();
         page.waitForTimeout(500);

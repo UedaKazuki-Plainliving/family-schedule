@@ -10,7 +10,7 @@ class ViewScheduleE2ETest extends BaseE2ETest {
     @Test
     void 予定が登録されていないときは全員分予定なしが表示される() {
         SchedulePage sp = schedulePage();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
         assertThat(sp.screen()).isVisible();
 
@@ -20,32 +20,32 @@ class ViewScheduleE2ETest extends BaseE2ETest {
 
     @Test
     void 今日と明日の予定が人ごとに表示される() {
-        insertSchedule(1, today(), "在宅勤務");
-        insertSchedule(3, today(), "部活");
-        insertSchedule(4, tomorrow(), "スイミング");
-        insertSchedule(5, tomorrow(), "サッカー教室");
+        insertSchedule(Members.DAD,       today(),    "在宅勤務");
+        insertSchedule(Members.DAUGHTER1, today(),    "部活");
+        insertSchedule(Members.DAUGHTER2, tomorrow(), "スイミング");
+        insertSchedule(Members.SON1,      tomorrow(), "サッカー教室");
 
         SchedulePage sp = schedulePage();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
 
-        assertThat(sp.scheduleItemText(1, today(), "在宅勤務")).isVisible();
-        assertThat(sp.scheduleItemText(3, today(), "部活")).isVisible();
-        assertThat(sp.scheduleItemText(4, tomorrow(), "スイミング")).isVisible();
-        assertThat(sp.scheduleItemText(5, tomorrow(), "サッカー教室")).isVisible();
+        assertThat(sp.scheduleItemText(Members.DAD,       today(),    "在宅勤務")).isVisible();
+        assertThat(sp.scheduleItemText(Members.DAUGHTER1, today(),    "部活")).isVisible();
+        assertThat(sp.scheduleItemText(Members.DAUGHTER2, tomorrow(), "スイミング")).isVisible();
+        assertThat(sp.scheduleItemText(Members.SON1,      tomorrow(), "サッカー教室")).isVisible();
     }
 
     @Test
     void 同じ人の同じ日に複数の予定があるとすべて表示される() {
-        insertSchedule(3, today(), "部活");
-        insertSchedule(3, today(), "塾");
+        insertSchedule(Members.DAUGHTER1, today(), "部活");
+        insertSchedule(Members.DAUGHTER1, today(), "塾");
 
         SchedulePage sp = schedulePage();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
 
-        assertThat(sp.scheduleItemText(3, today(), "部活")).isVisible();
-        assertThat(sp.scheduleItemText(3, today(), "塾")).isVisible();
-        assertThat(sp.scheduleCell(3, today()).locator(".schedule-item")).hasCount(2);
+        assertThat(sp.scheduleItemText(Members.DAUGHTER1, today(), "部活")).isVisible();
+        assertThat(sp.scheduleItemText(Members.DAUGHTER1, today(), "塾")).isVisible();
+        assertThat(sp.scheduleCell(Members.DAUGHTER1, today()).locator(".schedule-item")).hasCount(2);
     }
 }

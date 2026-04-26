@@ -1,5 +1,6 @@
 package com.family.schedule.e2e.page;
 
+import com.family.schedule.e2e.Members;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 
@@ -35,9 +36,17 @@ public class SchedulePage {
         return page.locator("#toast");
     }
 
+    public Locator scheduleCell(Members member, String date) {
+        return scheduleCell(member.id, date);
+    }
+
     public Locator scheduleCell(int memberId, String date) {
         return page.locator(
                 ".schedule-cell[data-member-id='" + memberId + "'][data-date='" + date + "']");
+    }
+
+    public Locator scheduleItemText(Members member, String date, String content) {
+        return scheduleItemText(member.id, date, content);
     }
 
     public Locator scheduleItemText(int memberId, String date, String content) {
@@ -45,8 +54,16 @@ public class SchedulePage {
                 .locator(".schedule-item-text:has-text('" + content + "')");
     }
 
+    public Locator firstScheduleItem(Members member, String date) {
+        return firstScheduleItem(member.id, date);
+    }
+
     public Locator firstScheduleItem(int memberId, String date) {
         return scheduleCell(memberId, date).locator(".schedule-item").first();
+    }
+
+    public Locator noScheduleInCell(Members member, String date) {
+        return noScheduleInCell(member.id, date);
     }
 
     public Locator noScheduleInCell(int memberId, String date) {

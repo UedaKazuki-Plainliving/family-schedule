@@ -12,28 +12,28 @@ class CreateScheduleE2ETest extends BaseE2ETest {
     void 必要最小限の入力で登録できる() {
         SchedulePage sp = schedulePage();
         AddScheduleModal modal = addScheduleModal();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
 
         sp.clickAdd();
-        modal.selectWho("長女");
+        modal.selectWho(Members.DAUGHTER1.name);
         modal.setDate(tomorrow());
         modal.setContent("塾");
         modal.save();
 
         assertThat(modal.modal()).isHidden();
-        assertThat(sp.scheduleItemText(3, tomorrow(), "塾")).isVisible();
+        assertThat(sp.scheduleItemText(Members.DAUGHTER1, tomorrow(), "塾")).isVisible();
     }
 
     @Test
     void フォームを開いたときの初期値が正しい() {
         AddScheduleModal modal = addScheduleModal();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
 
         schedulePage().clickAdd();
 
-        assertThat(modal.selectedWho()).hasText("お母さん");
+        assertThat(modal.selectedWho()).hasText(Members.MOM.name);
         assertThat(modal.dateInput()).hasValue(today());
         assertThat(modal.contentInput()).hasValue("");
     }
@@ -41,38 +41,38 @@ class CreateScheduleE2ETest extends BaseE2ETest {
     @Test
     void 誰がはメンバーボタンのワンタップ切替() {
         AddScheduleModal modal = addScheduleModal();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
 
         schedulePage().clickAdd();
 
-        for (String name : java.util.List.of("お父さん", "お母さん", "長女", "次女", "長男")) {
-            assertThat(modal.whoButton(name)).isVisible();
+        for (Members m : Members.values()) {
+            assertThat(modal.whoButton(m.name)).isVisible();
         }
 
-        modal.selectWho("長男");
-        assertThat(modal.selectedWho()).hasText("長男");
+        modal.selectWho(Members.SON1.name);
+        assertThat(modal.selectedWho()).hasText(Members.SON1.name);
     }
 
     @Test
     void 登録は3ステップ以内で完了する_FR21() {
         SchedulePage sp = schedulePage();
         AddScheduleModal modal = addScheduleModal();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
 
         sp.clickAdd();
-        modal.selectWho("長男");
+        modal.selectWho(Members.SON1.name);
         modal.setContent("サッカー");
         modal.save();
 
-        assertThat(sp.scheduleItemText(5, today(), "サッカー")).isVisible();
+        assertThat(sp.scheduleItemText(Members.SON1, today(), "サッカー")).isVisible();
     }
 
     @Test
     void 内容が空のときはエラーが表示される() {
         AddScheduleModal modal = addScheduleModal();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
 
         schedulePage().clickAdd();
@@ -86,7 +86,7 @@ class CreateScheduleE2ETest extends BaseE2ETest {
     @Test
     void 内容が100文字を超える場合はエラーが表示される() {
         AddScheduleModal modal = addScheduleModal();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
 
         schedulePage().clickAdd();
@@ -101,11 +101,11 @@ class CreateScheduleE2ETest extends BaseE2ETest {
     void 保存に成功するとトーストが表示される() {
         SchedulePage sp = schedulePage();
         AddScheduleModal modal = addScheduleModal();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
 
         sp.clickAdd();
-        modal.selectWho("長女");
+        modal.selectWho(Members.DAUGHTER1.name);
         modal.setDate(tomorrow());
         modal.setContent("塾");
         modal.save();
@@ -117,11 +117,11 @@ class CreateScheduleE2ETest extends BaseE2ETest {
     void キャンセルすると保存されない() {
         SchedulePage sp = schedulePage();
         AddScheduleModal modal = addScheduleModal();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
 
         sp.clickAdd();
-        modal.selectWho("次女");
+        modal.selectWho(Members.DAUGHTER2.name);
         modal.setContent("ピアノ");
         modal.cancel();
 

@@ -22,25 +22,25 @@ class UserMemoryE2ETest extends BaseE2ETest {
         SelectUserPage sup = selectUserPage();
         SchedulePage sp = schedulePage();
         page.navigate(baseUrl() + "/");
-        sup.selectUser("お母さん");
+        sup.selectUser(Members.MOM.name);
 
         assertThat(sp.screen()).isVisible();
-        assertThat(sp.currentUserName()).hasText("お母さん");
+        assertThat(sp.currentUserName()).hasText(Members.MOM.name);
 
         Object stored = page.evaluate("localStorage.getItem('familySchedule.currentUser')");
         org.junit.jupiter.api.Assertions.assertNotNull(stored);
-        org.junit.jupiter.api.Assertions.assertTrue(stored.toString().contains("お母さん"));
+        org.junit.jupiter.api.Assertions.assertTrue(stored.toString().contains(Members.MOM.name));
     }
 
     @Test
     void 二回目以降はスケジュール画面から始まる() {
         SelectUserPage sup = selectUserPage();
         SchedulePage sp = schedulePage();
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
 
         assertThat(sp.screen()).isVisible();
         assertThat(sup.screen()).isHidden();
-        assertThat(sp.currentUserName()).hasText("お母さん");
+        assertThat(sp.currentUserName()).hasText(Members.MOM.name);
     }
 }

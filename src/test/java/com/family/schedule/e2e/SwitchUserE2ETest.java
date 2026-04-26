@@ -11,7 +11,7 @@ class SwitchUserE2ETest extends BaseE2ETest {
 
     @BeforeEach
     void navigateToSchedule() {
-        setCurrentUser("お母さん", 2);
+        setCurrentUser(Members.MOM);
         page.navigate(baseUrl() + "/");
         assertThat(schedulePage().screen()).isVisible();
     }
@@ -38,9 +38,9 @@ class SwitchUserE2ETest extends BaseE2ETest {
         sp.clickSwitchUser();
         assertThat(sup.screen()).isVisible();
 
-        sup.selectUser("次女");
+        sup.selectUser(Members.DAUGHTER2.name);
 
         assertThat(sp.screen()).isVisible();
-        assertThat(sp.currentUserName()).hasText("次女");
+        assertThat(sp.currentUserName()).hasText(Members.DAUGHTER2.name);
     }
 }
