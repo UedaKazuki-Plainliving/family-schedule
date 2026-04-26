@@ -14,19 +14,34 @@
 
 ## 各テスト種別のデータ管理方針
 
-### IT（結合テスト）・ST（システムテスト） — H2インメモリDB
+### IT（結合テスト） — H2インメモリDB（devプロファイル）
 
-- **初期データ**: Flyway `V1__init.sql` がサーバー起動時に自動投入（メンバー5名・スケジュール0件）
-- **リセット方法**: サーバーを再起動するだけでOK（H2はメモリなので再起動で消える）
+- **起動コマンド**: `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`
+- **初期データ**: Flyway が起動時に自動投入（メンバー5名・スケジュール0件）
+- **リセット方法**: **サーバーを再起動するだけでOK**（H2はメモリなので再起動で消える）
+- **このフォルダのSQLは不要**（再起動で自動リセットされるため）
 
 ```bash
-# サーバー停止（ターミナルで Ctrl+C）
-# 再起動
-./mvnw spring-boot:run   # Mac/Linux
-mvnw.cmd spring-boot:run  # Windows
+# Ctrl+C でサーバー停止 → 再起動でリセット完了
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-- **このフォルダのSQLは不要**（H2は自動リセットされるため）
+### ST（システムテスト） — PostgreSQL（Docker Compose）
+
+- **起動コマンド**: `docker compose up -d`
+- **初期データ**: Flyway が初回起動時に自動投入（2回目以降は残存）
+- **リセット方法A（推奨）**: `reset_it_st.sql` を実行
+
+```bash
+docker compose exec db psql -U family -d family_schedule \
+  -f docs/tests/data/reset_it_st.sql
+```
+
+- **リセット方法B（確実）**: ボリュームごと削除
+
+```bash
+docker compose down -v && docker compose up -d
+```
 
 ---
 

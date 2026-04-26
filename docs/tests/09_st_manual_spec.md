@@ -235,7 +235,9 @@ localStorage.getItem('familySchedule.currentUser');
 
 | 項目 | 内容 |
 |------|------|
-| サーバー | Spring Boot 3.3.4 + PostgreSQL（Docker Compose or ローカル起動） |
+| サーバー | Spring Boot 3.3.4 + **PostgreSQL（Docker Compose）** |
+| データベース | PostgreSQL（`docker compose up -d` で起動） |
+| データリセット | `reset_it_st.sql` または `docker compose down -v && docker compose up -d` |
 | ブラウザ | Google Chrome 最新版（PC）、Safari / Chrome（iOS実機またはシミュレータ） |
 | 自動テストツール | Playwright for Java（ページオブジェクト不使用の直接操作スタイル） |
 | スマホ実機テスト | iPhone SE 相当（375×667px）推奨 |
@@ -256,26 +258,22 @@ localStorage.getItem('familySchedule.currentUser');
 
 ### 2.1 サーバー起動
 
-ターミナル（コマンド入力画面）でプロジェクトフォルダに移動し、以下を実行します。
-
-| OS | ターミナルの開き方 |
-|----|-----------------|
-| Windows 11 | スタートボタンを右クリック →「ターミナル」 |
-| Windows 10 | `Win + R` → `powershell` → Enter |
-| Mac | `Cmd + Space` → `ターミナル` → Enter |
+ST（システムテスト）は **Docker Compose** で PostgreSQL + アプリをまとめて起動します。
 
 ```bash
-# Mac / Linux
-./mvnw spring-boot:run
-
-# Windows
-mvnw.cmd spring-boot:run
+docker compose up -d
 ```
 
-起動すると以下のメッセージが表示されます：
+> **初回起動時**: Docker イメージのビルドが入るため3〜5分かかります。
+> 2回目以降は30秒程度です。
+
+起動確認:
+
+```bash
+docker compose logs app | tail -5
 ```
-Started FamilyScheduleApplication in 3.2 seconds
-```
+
+`Started FamilyScheduleApplication in X.X seconds` が表示されれば起動成功です。
 
 ### 2.2 起動確認
 
@@ -294,6 +292,29 @@ Chromeのアドレスバーに `http://localhost:8080` と入力して Enter。
   { "id": 5, "name": "長男",     "displayOrder": 5 }
 ]
 ```
+
+### 2.3 リセット方法（2回目以降のテスト）
+
+ST は PostgreSQL を使うため、**サーバーを再起動してもデータは消えません。**
+テストセッションの開始前に以下のいずれかでリセットしてください。
+
+**方法A: SQL スクリプトで素早くリセット（推奨）**
+
+```bash
+docker compose exec db psql -U family -d family_schedule \
+  -f docs/tests/data/reset_it_st.sql
+```
+
+実行後「メンバー5名・スケジュール0件」が表示されれば初期状態になっています。
+
+**方法B: Docker ボリュームごと削除してリセット（確実だが時間がかかる）**
+
+```bash
+docker compose down -v   # データボリュームごと削除
+docker compose up -d     # 再起動（Flywayが初期データを自動投入）
+```
+
+> 方法Bは起動まで3〜5分かかります。テスト中に急いでリセットしたい場合は方法Aを使ってください。
 
 ### 2.3 Playwright 設定（自動化テスト担当者向け）
 
