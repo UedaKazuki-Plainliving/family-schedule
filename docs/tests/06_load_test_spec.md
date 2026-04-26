@@ -208,7 +208,7 @@ k6 run --out json=result.json lt01_normal.js
 
 ## 7. 事前シードデータ（SQL）
 
-テスト実行前に以下を本番DBに投入する（テスト終了後に削除）。
+テスト実行前に以下を本番DBに投入する。
 
 ```sql
 -- テスト用予定50件（member_id を1〜5に分散）
@@ -220,6 +220,39 @@ SELECT
   now(), now()
 FROM generate_series(1, 50) AS i;
 ```
+
+**投入方法:**
+
+```bash
+# EC2サーバーで直接実行
+psql -U postgres -d familydb -c "INSERT INTO schedules ..."
+
+# またはファイルで実行
+psql -U postgres -d familydb -f docs/tests/data/seed_at.sql
+```
+
+## 7b. テスト後クリーンアップ（SQL）
+
+テスト終了後に以下を実行してシードデータを削除する。
+
+```sql
+-- 負荷テスト用シードデータの削除
+DELETE FROM schedules WHERE content LIKE '負荷テスト予定%';
+
+-- k6 テスト中の残存データ削除（content が '負荷テスト' または 'ストレステスト' のもの）
+DELETE FROM schedules WHERE content IN ('負荷テスト', 'ストレステスト');
+
+-- 論理削除済みで purge されていないレコードの完全削除（任意）
+-- DELETE FROM schedules WHERE deleted_at IS NOT NULL;
+
+-- クリーンアップ後の確認
+SELECT
+  COUNT(*) FILTER (WHERE deleted_at IS NULL) AS "有効なスケジュール数",
+  COUNT(*) FILTER (WHERE deleted_at IS NOT NULL) AS "論理削除済み数"
+FROM schedules;
+```
+
+クリーンアップ用SQLファイルは `docs/tests/data/cleanup_load.sql` にも格納されています。
 
 ---
 

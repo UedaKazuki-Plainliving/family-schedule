@@ -59,9 +59,61 @@
 | ブラウザ | Safari（iPhone）または Chrome（Android） |
 | ネット接続 | 自宅の Wi-Fi に接続した状態 |
 | アプリのインストール | 不要。ブラウザでURLを開くだけ |
-| テスト前の準備 | テスト用データ（サンプルの予定）を入れておく |
+| サーバー | EC2 `54.162.107.130:8082`（本番環境） |
+| データベース | PostgreSQL（本番DB） |
 
-### 1-5. テストの進め方
+### 1-5. テスト前の準備（開発担当者が実施）
+
+> **テスト参加者（家族）はここを読む必要はありません。開発担当者向けです。**
+
+#### ステップ1: サーバーの起動確認
+
+ブラウザで `http://54.162.107.130:8082` を開き、アプリが表示されることを確認する。
+
+#### ステップ2: テスト用データのクリーンアップ（前回のテストデータが残っている場合）
+
+```bash
+# DBサーバーで実行
+psql -U postgres -d familydb -f docs/tests/data/cleanup_at.sql
+```
+
+または PostgreSQL クライアント（DBeaver, psql など）で `docs/tests/data/cleanup_at.sql` を実行する。
+
+#### ステップ3: テスト用シードデータを投入する
+
+```bash
+psql -U postgres -d familydb -f docs/tests/data/seed_at.sql
+```
+
+**投入後の確認:**
+
+```sql
+SELECT member_id, date, content FROM schedules ORDER BY member_id, date;
+```
+
+5名・計13件のスケジュールが表示されれば準備完了。
+
+#### ステップ4: テスト後のクリーンアップ
+
+テスト完了後、以下を実行してデータをリセットする：
+
+```bash
+psql -U postgres -d familydb -f docs/tests/data/cleanup_at.sql
+```
+
+> テストデータのSQLファイルについては `docs/tests/data/README.md` を参照してください。
+
+#### シナリオ実施順序の注意
+
+一部のシナリオは依存関係があります：
+
+```
+AT-P01-03（おじいちゃん追加）を先に実施 → その後に AT-GR-02（BUG-VALIDATOR確認）を実施
+```
+
+AT-GR-02 は6人目のメンバーが存在しないと確認できません。
+
+### 1-6. テストの進め方
 
 1. テスト担当者が端末とURLを用意します
 2. 家族メンバーにシナリオを渡し、自分で読んで操作してもらいます
