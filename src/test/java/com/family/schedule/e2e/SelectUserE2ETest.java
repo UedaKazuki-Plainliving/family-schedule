@@ -1,5 +1,7 @@
 package com.family.schedule.e2e;
 
+import com.family.schedule.e2e.page.SelectUserPage;
+import com.family.schedule.e2e.page.SchedulePage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -8,18 +10,15 @@ import java.util.List;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
-/**
- * select_user.feature 相当 — 利用者選択画面の動作検証
- */
 class SelectUserE2ETest extends BaseE2ETest {
 
     @Test
     void 登録メンバーの名前ボタンが全員分表示される() {
+        SelectUserPage sup = selectUserPage();
         page.navigate(baseUrl() + "/");
-        assertThat(page.locator("#screen-select-user")).isVisible();
+        assertThat(sup.screen()).isVisible();
         for (String name : List.of("お父さん", "お母さん", "長女", "次女", "長男")) {
-            assertThat(page.locator(".member-btn").filter(
-                    new com.microsoft.playwright.Locator.FilterOptions().setHasText(name))).isVisible();
+            assertThat(sup.memberButton(name)).isVisible();
         }
     }
 
@@ -32,10 +31,11 @@ class SelectUserE2ETest extends BaseE2ETest {
         "長男,     5"
     })
     void 名前を選ぶとスケジュール画面に遷移する(String name, int id) {
+        SelectUserPage sup = selectUserPage();
+        SchedulePage sp = schedulePage();
         page.navigate(baseUrl() + "/");
-        page.locator(".member-btn").filter(
-                new com.microsoft.playwright.Locator.FilterOptions().setHasText(name)).click();
-        assertThat(page.locator("#screen-schedule")).isVisible();
-        assertThat(page.locator("#current-user-name")).hasText(name);
+        sup.selectUser(name);
+        assertThat(sp.screen()).isVisible();
+        assertThat(sp.currentUserName()).hasText(name);
     }
 }

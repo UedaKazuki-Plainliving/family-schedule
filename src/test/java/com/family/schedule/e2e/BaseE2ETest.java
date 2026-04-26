@@ -1,9 +1,12 @@
 package com.family.schedule.e2e;
 
+import com.family.schedule.e2e.page.AddScheduleModal;
+import com.family.schedule.e2e.page.MemberManagePage;
+import com.family.schedule.e2e.page.SchedulePage;
+import com.family.schedule.e2e.page.SelectUserPage;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
-import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 
@@ -182,9 +185,10 @@ public abstract class BaseE2ETest {
                 "JSON.stringify({id:" + id + ",name:\"" + name + "\",displayOrder:" + id + "}));");
     }
 
-    protected Locator cell(int memberId, String date) {
-        return page.locator(".schedule-cell[data-member-id='" + memberId + "'][data-date='" + date + "']");
-    }
+    protected SelectUserPage selectUserPage() { return new SelectUserPage(page); }
+    protected SchedulePage schedulePage() { return new SchedulePage(page); }
+    protected AddScheduleModal addScheduleModal() { return new AddScheduleModal(page); }
+    protected MemberManagePage memberManagePage() { return new MemberManagePage(page); }
 
     protected void insertSchedule(int memberId, String date, String content) {
         jdbc.update(
@@ -197,15 +201,4 @@ public abstract class BaseE2ETest {
     protected String dayAfterTomorrow() { return LocalDate.now().plusDays(2).toString(); }
     protected String daysLater(int n) { return LocalDate.now().plusDays(n).toString(); }
 
-    protected void flickLeft() {
-        page.mouse().move(300, 250); page.mouse().down();
-        page.mouse().move(100, 250); page.mouse().up();
-        page.waitForTimeout(500);
-    }
-
-    protected void flickRight() {
-        page.mouse().move(100, 250); page.mouse().down();
-        page.mouse().move(300, 250); page.mouse().up();
-        page.waitForTimeout(500);
-    }
 }
