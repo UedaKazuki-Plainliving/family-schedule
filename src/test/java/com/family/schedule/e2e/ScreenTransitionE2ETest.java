@@ -52,12 +52,17 @@ class ScreenTransitionE2ETest extends BaseE2ETest {
 
     @Test
     void T14_今日に戻るボタン() {
+        // ET-013: 今日表示中は btn-today が disabled になるため、
+        // 先にフリックで別の日へ移動してからボタンを押す
         context.addInitScript(
                 "localStorage.setItem('familySchedule.currentUser','{\"id\":2,\"name\":\"お母さん\",\"displayOrder\":2}');");
         page.navigate(baseUrl() + "/");
-        String before = page.locator("#date-heading-left").innerText();
+        // 左フリックで翌日へ移動（btn-today が有効になる）
+        flickLeft();
+        assertThat(page.locator("#btn-today")).isEnabled();
+        // 今日に戻る
         page.locator("#btn-today").click();
-        // 今日に戻っても同じラベル
+        page.waitForTimeout(400);
         assertThat(page.locator("#date-heading-left")).containsText("今日");
     }
 }
